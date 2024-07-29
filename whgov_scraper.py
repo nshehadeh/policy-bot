@@ -2,6 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 import concurrent.futures
 
+connection_string = mongodb+srv://nshehadeh:va8n17zzFHVLeqiz@cluster0.2q8rb6b.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+client = MongoClient(connection_string)
+
 BASE_URL = 'https://www.whitehouse.gov/briefing-room/page/'
 
 # Categories to scrape within Briefing Room
