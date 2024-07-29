@@ -1,12 +1,19 @@
+from pymongo import MongoClient
 import requests
 from bs4 import BeautifulSoup
 import concurrent.futures
+from dotenv import load_dotenv
+import os
 
-connection_string = mongodb+srv://nshehadeh:va8n17zzFHVLeqiz@cluster0.2q8rb6b.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+# Load .env environment variables
+load_dotenv()
+# MongoDB connection str
+"""
+connection_string = os.getenv('MONGO_CONNECTION_STRING')
 client = MongoClient(connection_string)
-
+db = client['whgov']
 BASE_URL = 'https://www.whitehouse.gov/briefing-room/page/'
-
+"""
 # Categories to scrape within Briefing Room
 CATEGORIES = [
     'blog', 'disclosures', 'legislation', 'presidential-actions', 
@@ -41,21 +48,24 @@ def scrape_page(page_number):
 #TODO implement adaptable for unknown number of pages aka make it dynamic with how many workers are being used
 def scrape_briefing_room():
     with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
-            future_to_page = {executor.submit(scrape_page, page_number): page_number for page_number in range(1, 3)} # replace with max pages
-            for future in concurrent.futures.as_completed(future_to_page):
-                page_number = future_to_page[future]
-                try:
-                    links = future.result()
-                    if links:
-                        visited_urls.extend(links)
-                    print(f"Scraped page {page_number}")
-                except Exception as e:
-                    print(f"Error scraping page {page_number}: {e}")
+            futures_to_page = {}
+            while True:
+                future = executor.submit(scrape_page, page_number)
+                futures_to_page[future] = page_number
+                for result in concurrent.futures.as_completed(futures_to_page):
+                    page_number = futures_to_page[result]
+                    try:
+                        links = result.result()
+                        if links:
+                            visited_urls.extend(links)
+                        print(f"Scraped page {page_number}")
+                        page_number+=1
+                    except Exception as e:
+                        print(f"Error scraping page {page_number}: {e}")
 
 scrape_briefing_room()
 
 # Print the collected URLs
 with open('visited_urls.txt', 'w') as file:
-    for url in visited_urls:
-        file.write(f"{url}\n")
+    file.write(str(len(visited_urls)))
     
