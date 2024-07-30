@@ -23,18 +23,12 @@ collection = db['whbriefingroom']
 
 BASE_URL = 'https://www.whitehouse.gov/briefing-room/page/'
 
-# Categories to scrape within Briefing Room
-CATEGORIES = [
-    'blog', 'disclosures', 'legislation', 'presidential-actions', 
-    'press-briefings', 'speeches-remarks', 'statements-releases'
-]
-
 class WHArticle(BaseModel):
     title: str
     # Raises validation error if type is not a category
-    category: Literal['blog', 'disclosures', 'legislation', 'presidential-actions', 'press-briefings', 'speeches-remarks', 'statements-releases']
+    category: Literal['Blog', 'Disclosures', 'Legislation', 'Presidential Actions', 'Press Briefings', 'Speeches and Remarks', 'Statements and Releases']
     date_posted: str
-    text: str
+    content: str
     url: str
     source: str = Field(default="White House Gov Briefing Room")
 
@@ -111,21 +105,23 @@ def scrape_article(url):
 
     # Extract and clean date
     date_tag = soup.find('time', class_='posted-on entry-date published updated')
-    date = clean_html_content(str(date_tag)) if date_tag else None
+    date_posted = clean_html_content(str(date_tag)) if date_tag else None
 
     # Extract and clean category
     category_tag = soup.find('a', class_='wh-breadcrumb__link ui-label-base', rel='category tag')
     category = clean_html_content(str(category_tag)) if category_tag else None
 
     # Extract and clean content
-    content_tags = soup.find_all('p')
+    body_content_section = soup.find('section', class_='body-content')
+    content_tags = body_content_section.find_all('p') if body_content_section else []
     content = '\n\n'.join(clean_html_content(str(tag)) for tag in content_tags) if content_tags else None
 
     return {
         'title': title,
-        'date': date,
+        'date_posted': date_posted,
         'category': category,
-        'content': content
+        'content': content,
+        'url':url
     }
 
 
