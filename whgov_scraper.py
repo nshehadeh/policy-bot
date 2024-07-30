@@ -18,7 +18,7 @@ load_dotenv()
 # MongoDB connection str
 connection_string = os.getenv('MONGO_CONNECTION_STRING')
 client = MongoClient(connection_string)
-db = client['whgov']
+db = client['WTP']
 collection = db['whbriefingroom']
 
 BASE_URL = 'https://www.whitehouse.gov/briefing-room/page/'
@@ -42,7 +42,11 @@ def insert_article(article_data):
     try:
         article = WHArticle(**article_data)
         # model_dump converts pydantic model to dictionary
-        collection.insert_one(article.model_dump())
+        collection.update_one(
+            {"url": article.url},
+            {"$set": article.model_dump()},
+            upsert=True
+        )
     except ValidationError as e:
         print(f"Validation error inserting an article: {e}")    
         
@@ -182,4 +186,5 @@ if __name__ == "__main__":
     # Print num of URLS visited just to check
     visited = scrape_briefing_room()
     print(f"Scraping done with {visited} urls visited")
+    
 
