@@ -1,2 +1,2 @@
-# WTP
+# PolicyBot
 Political LLM App 
