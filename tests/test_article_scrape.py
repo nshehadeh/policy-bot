@@ -6,7 +6,7 @@ import sys
 from pymongo import MongoClient
 from pydantic import ValidationError
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from whgov_scraper import scrape_article, WHArticle
+from scrapers.whgov_scraper import scrape_article, WHArticle
 
 
 # List of example article URLs to test the scraper

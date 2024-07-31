@@ -1,7 +1,7 @@
 import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from whgov_scraper import scrape_briefing_room, WHArticle, collection
+from scrapers.whgov_scraper import scrape_briefing_room, WHArticle, collection
 
 # Load environment variables
 load_dotenv()
