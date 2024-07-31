@@ -42,6 +42,7 @@ def insert_article(article_data):
     try:
         article = WHArticle(**article_data)
         # model_dump converts pydantic model to dictionary
+        # update_one stops duplicates
         collection.update_one(
             {"url": article.url},
             {"$set": article.model_dump()},
@@ -131,7 +132,7 @@ def scrape_article(url):
 
 def scrape_briefing_room() -> int:
     page_number = 1
-    max_workers = 15
+    max_workers = 10
     res = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         pbar = tqdm(total=0, desc="Pages Scraped", dynamic_ncols=True, bar_format='{desc}: {n}')
