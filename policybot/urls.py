@@ -16,9 +16,20 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework.authtoken.views import obtain_auth_token
+from django.urls import get_resolver
+
+
 # myproject/urls.py
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('myapp.urls')),  # Include URLs from myapp
+    path('api/', include('myapp.urls')),  # Include URLs from myapp
+    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
 ]
+
+
+# Debugging: Print all URL patterns
+resolver = get_resolver()
+for pattern in resolver.url_patterns:
+    print(pattern)

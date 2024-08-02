@@ -24,3 +24,5 @@ Currently Working on:
 | **Deployment & Hosting** | AWS, Docker, Kubernetes                        |
 | **CI/CD Pipeline**       | GitHub Actions, Jenkins                        |
 
+
+

@@ -1,0 +1,25 @@
+React Frontend (App.js)
+     |
+     |--- User presses enter
+     V
+Axios Request (App.js)
+     |
+     |--- POST /api-token-auth/ (username, password)
+     V
+Django URL Routing (myproject/urls.py)
+     |
+     |--- path('api-token-auth/', obtain_auth_token)
+     V
+DRF View Handling (rest_framework.authtoken.views.obtain_auth_token)
+     |
+     |--- Validate credentials
+     |--- Generate token
+     V
+Response
+     |
+     |--- Return token to frontend
+     V
+React Frontend (App.js)
+     |
+     |--- Receive token
+     |--- Store token in state
