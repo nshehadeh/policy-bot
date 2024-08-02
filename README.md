@@ -1,7 +1,9 @@
 # PolicyBot
 ### Political LLM App 
 
-
+To run:
+- Start React server in in frontend/ with npm start
+- Start Django server in policybot/ with python manage.py runserver
 
 Currently Working on:
 - RAG test & ipynb → OOP & py
