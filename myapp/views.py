@@ -12,6 +12,7 @@ class UserCreate(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     
+
 class ChatView(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -19,8 +20,12 @@ class ChatView(APIView):
         serializer = ChatMessageSerializer(data=request.data)
         if serializer.is_valid():
             user_message = serializer.validated_data['message']
-            print(user_message)
-            response = RAGSystem.handle_query(user_message)
-            return Response({'message': user_message, 'response': response})
+            print(f"User query: {user_message}")
+            try:
+                rag_system = RAGSystem()
+                response = rag_system.handle_query(user_message)
+                return Response({'message': user_message, 'response': response})
+            except TypeError as e:
+                print(f"TypeError: {e}")
+                return Response({'error': 'An error occurred while processing your request.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
