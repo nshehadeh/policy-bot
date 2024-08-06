@@ -19,6 +19,7 @@ class ChatView(APIView):
         serializer = ChatMessageSerializer(data=request.data)
         if serializer.is_valid():
             user_message = serializer.validated_data['message']
+            print(user_message)
             response = RAGSystem.handle_query(user_message)
             return Response({'message': user_message, 'response': response})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
