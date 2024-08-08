@@ -1,10 +1,3 @@
-
-    
-    def handle_query(self, query):
-        return f"{self.msg} so I have no idea how to answer: {query}"
-
-
-
 import os
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.output_parsers import StrOutputParser
@@ -41,7 +34,6 @@ class OpenAIEmbeddingsModel(BaseEmbeddings):
     def get_embeddings(self):
         return OpenAIEmbeddings(model='text-embedding-3-small')
 
-#TODO make this connected to the embedding size class somehow, like the vector store has to be compatible with the embedding type
 class PineconeVectorStoreModel(BaseVectorStore):
     def __init__(self, index_name, embeddings):
         self.index_name = index_name
@@ -101,13 +93,21 @@ class RAGSystem:
             self.prompt = prompt_template.get_prompt_template()
             self.generator = Generator(self.llm, self.retriever, self.prompt)
             self._initialized = True
-            self.msg = "Nothing message is implemented here"
     
     def _load_environment_variables(self):
         os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
         os.environ["PINECONE_API_KEY"] = os.getenv('PINECONE_API_KEY')
     
-    def handle_query(self, question):
+    def query(self, question):
         return self.generator.generate(question)
 
+# Example usage
+if __name__ == "__main__":
+    model = OpenAIModel()
+    embeddings = OpenAIEmbeddingsModel()
+    vector_store = PineconeVectorStoreModel(index_name="langchain-index", embeddings=embeddings.get_embeddings())
+    prompt_template = SimplePromptTemplate()
 
+    rag_system = RAGSystem(model, embeddings, vector_store, prompt_template)
+    result = rag_system.query("What are Biden's tax policies for young adults")
+    pprint(result)
