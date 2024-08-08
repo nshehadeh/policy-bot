@@ -28,8 +28,8 @@ urlpatterns = [
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
 ]
 
-
+"""
 # Debugging: Print all URL patterns
 resolver = get_resolver()
 for pattern in resolver.url_patterns:
-    print(pattern)
+    print(patter

@@ -23,3 +23,33 @@ React Frontend (App.js)
      |
      |--- Receive token
      |--- Store token in state
+
+
+policy-bot/
+├── backend/
+│   ├── policybot/
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── wsgi.py
+│   ├── apps/
+│   │   ├── authentication/
+│   │   ├── chat/
+│   │   ├── scrapers/
+│   │   └── ...
+│   ├── scrapers/
+│   ├── scripts/
+│   ├── Dockerfile
+│   └── requirements.txt
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── services/
+│   │   ├── App.js
+│   │   └── index.js
+│   ├── public/
+│   ├── Dockerfile
+│   └── package.json
+├── docker-compose.yml
+└── README.md
