@@ -1,33 +1,30 @@
-from django.contrib.auth.models import User
+from .models import CustomUser
 from rest_framework import serializers
-from .models import ChatHistory, UserSettings
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ['id', 'username', 'password']
-        extra_kwargs = {'password': {'write_only': True}}
+        model = CustomUser
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'password', 'chat_history')
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'chat_history': {'read_only': True}  # Chat history is read-only
+        }
 
     def create(self, validated_data):
-        username = validated_data.get('username')
-        password = validated_data.get('password')
-
-        user = User.objects.create_user(username=username, password=password)
-        UserSettings.objects.create(user=user, setting_name='username', setting_value=username)
+        user = CustomUser.objects.create_user(**validated_data)
         return user
-
 #TODO Do I need response here?
 class ChatMessageSerializer(serializers.Serializer):
     message = serializers.CharField()
     response = serializers.CharField(read_only=True)
 
-class ChatHistorySerializer(serializers.ModelSerializer):
+"""class ChatHistorySerializer(serializers.ModelSerializer):
     class Meta:
-        model = ChatHistory
+        model = CustomUser
         fields = ['user', 'message', 'response', 'timestamp']
-
-class UserSettingsSerializer(serializers.ModelSerializer):
+"""
+class UpdateSettingsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserSettings
-        fields = ['user', 'setting_name', 'setting_value']
-        read_only_fields = ['user']
+        model = CustomUser
+        fields = ['first_name', 'last_name']
+        # read_only_fields = ['user']

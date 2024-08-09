@@ -16,7 +16,7 @@ function App() {
         <h1>Chat with Bot</h1>
         <Routes>
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<Login setToken={setToken} />} />
+          <Route path="/login" element={<Login setToken={setToken} />} />
           <Route path="/chat" element={<Chat token={token} />} />
         </Routes>
       </div>

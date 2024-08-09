@@ -14,7 +14,6 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 load_dotenv()
-MONGO_CONNECTION_STRING = os.getenv('MONGO_CONNECTION_STRING')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -81,15 +80,16 @@ WSGI_APPLICATION = 'policybot.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-        'default': {
-            'ENGINE': 'djongo',
-            'NAME': 'users',
-            'ENFORCE_SCHEMA': False,
-            'CLIENT': {
-                'host': MONGO_CONNECTION_STRING
-            }  
-        }
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('PSQL_DB_NAME'),
+        'USER': os.getenv('PSQL_DB_USER'),
+        'PASSWORD':  os.getenv('PSQL_DB_PASSWORD'),
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
 }
+AUTH_USER_MODEL = 'myapp.CustomUser'
 
 
 # Password validation

@@ -123,7 +123,7 @@ class RAGSystem:
             self.prompt = (prompt_template or SimplePromptTemplate()).get_prompt_template()
             self.generator = Generator(self.llm, self.retriever, self.prompt)
             self._initialized = True
-            self.msg = "Nothing message is implemented here"
+            self.msg = "I, the policy bot, have decided to tell you:"
 
     def _load_environment_variables(self):
         os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
@@ -136,4 +136,4 @@ class RAGSystem:
 
     def handle_query(self, question):
         generated = self.generator.generate(question)
-        return f"{self.msg} so I have no idea how to answer: {generated}"
+        return f"{self.msg} {generated}"

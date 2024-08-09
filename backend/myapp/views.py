@@ -1,17 +1,18 @@
 from django.shortcuts import render
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import UserSerializer, ChatMessageSerializer, ChatHistorySerializer, UserSettingsSerializer
+from .serializers import UserSerializer, ChatMessageSerializer, UpdateSettingsSerializer
 from .rag_system import RAGSystem
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
-from .models import ChatHistory, UserSettings
+from .models import CustomUser  # Import your CustomUser model
+
 
 
 class UserCreate(generics.CreateAPIView):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
     
 
@@ -26,15 +27,11 @@ class ChatView(APIView):
             try:
                 rag_system = RAGSystem()
                 response = rag_system.handle_query(user_message)
-                
-                # Save chat history
-                chat_history = ChatHistory(
-                    user=request.user,
-                    message=user_message,
-                    response=response
-                )
-                chat_history.save()
-                
+                 # Save chat history
+                chat_entry = {'message': user_message, 'response': response}
+                request.user.chat_history.append(chat_entry)
+                request.user.save()
+                                
                 return Response({'message': user_message, 'response': response})
             except TypeError as e:
                 print(f"TypeError: {e}")
@@ -43,15 +40,16 @@ class ChatView(APIView):
     
 class UserSettingsView(APIView):
     permission_classes = [IsAuthenticated]
-
+    """
     def get(self, request, *args, **kwargs):
         settings = UserSettings.objects.filter(user=request.user)
         serializer = UserSettingsSerializer(settings, many=True)
         return Response(serializer.data)
-
+    """
     def post(self, request, *args, **kwargs):
-        serializer = UserSettingsSerializer(data=request.data)
+        user = request.user
+        serializer = UpdateSettingsSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
-            setting = serializer.save(user=request.user)
-            return Response(UserSettingsSerializer(setting).data)
+            serializer.save()
+            return Response({'status': 'settings updated', 'updated_fields': serializer.data})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
