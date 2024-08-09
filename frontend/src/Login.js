@@ -38,4 +38,9 @@ const Login = ({ setToken }) => {
         onChange={(e) => setPassword(e.target.value)}
       />
       <button onClick={handleLogin}>Login</button>
-      <p>Don't have an account? <Link 
+      <p>Don't have an account? <Link to="/register">Register</Link></p>
+    </div>
+  );
+}
+
+export default Login;

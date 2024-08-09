@@ -17,4 +17,10 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/" element={<Login setToken={setToken} />} />
           <Route path="/chat" element={<Chat token={token} />} />
-        </Rou
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+export default App;

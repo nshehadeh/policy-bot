@@ -34,4 +34,24 @@ class ChatView(APIView):
                     response=response
                 )
                 chat_history.save()
-            
+                
+                return Response({'message': user_message, 'response': response})
+            except TypeError as e:
+                print(f"TypeError: {e}")
+                return Response({'error': 'An error occurred while processing your request.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UserSettingsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        settings = UserSettings.objects.filter(user=request.user)
+        serializer = UserSettingsSerializer(settings, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        serializer = UserSettingsSerializer(data=request.data)
+        if serializer.is_valid():
+            setting = serializer.save(user=request.user)
+            return Response(UserSettingsSerializer(setting).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

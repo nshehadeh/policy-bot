@@ -13,4 +13,21 @@ class UserSerializer(serializers.ModelSerializer):
         password = validated_data.get('password')
 
         user = User.objects.create_user(username=username, password=password)
-       
+        UserSettings.objects.create(user=user, setting_name='username', setting_value=username)
+        return user
+
+#TODO Do I need response here?
+class ChatMessageSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    response = serializers.CharField(read_only=True)
+
+class ChatHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatHistory
+        fields = ['user', 'message', 'response', 'timestamp']
+
+class UserSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserSettings
+        fields = ['user', 'setting_name', 'setting_value']
+        read_only_fields = ['user']

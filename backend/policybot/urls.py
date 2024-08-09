@@ -32,4 +32,5 @@ urlpatterns = [
 # Debugging: Print all URL patterns
 resolver = get_resolver()
 for pattern in resolver.url_patterns:
-    print(patter
+    print(pattern)
+"""
