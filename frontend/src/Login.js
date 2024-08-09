@@ -1,7 +1,7 @@
 // Login.js
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link} from 'react-router-dom';
 
 const Login = ({ setToken }) => {
   const [username, setUsername] = useState('');

@@ -83,7 +83,7 @@ WSGI_APPLICATION = 'policybot.wsgi.application'
 DATABASES = {
         'default': {
             'ENGINE': 'djongo',
-            'NAME': 'policybot.users',
+            'NAME': 'users',
             'ENFORCE_SCHEMA': False,
             'CLIENT': {
                 'host': MONGO_CONNECTION_STRING
