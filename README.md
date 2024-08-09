@@ -2,12 +2,14 @@
 ### Political LLM App 
 
 To run:
-- Start React server in in frontend/ with npm start
-- Start Django server in policybot/ with python manage.py runserver
+- Start React server in in frontend/ with yarn start, if issues run: rm -rf node_modules --> yarn install --> yarn start
+- Start Django server in backend/ with python manage.py makemigrations --> python manage.py migrate --> python manage.py runserver
+- App will run on localhost:3000, Django admin: http://127.0.0.1:8000/admin/
+- Uses postgresql hosted locally, change all variables in env for databases and API keys
 
 Currently Working on:
-- RAG test & ipynb → OOP & py
-- Django REST Framework
+- Saving and displaying prevoius chats correctly
+- Improving/upgrading RAG system and prompting
 
 ## Tech Stack
 ### In Progress
