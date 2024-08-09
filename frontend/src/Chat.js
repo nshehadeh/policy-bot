@@ -58,6 +58,9 @@ function Chat({ token }) {
     }
   };
 
+  // Renders chat dates
+  const chatDates = [...new Set(history.map(chat => new Date(chat.timestamp).toLocaleDateString()))];
+
   return (
     <div>
       <h2>Chat</h2>
@@ -83,22 +86,24 @@ function Chat({ token }) {
           <button onClick={handleNameChange}>Update Name</button>
         </div>
       )}
-      <div>
-        {history.map((chat, index) => (
-          <div key={index}>
-            <p><strong>You:</strong> {chat.message}</p>
-            <p><strong>Bot:</strong> {chat.response}</p>
-          </div>
-        ))}
+      <div style={{ display: 'flex' }}>
+        <div style={{ width: '20%', borderRight: '1px solid #ccc', paddingRight: '10px' }}>
+          <h3>Chat Dates</h3>
+          {chatDates.map((date, index) => (
+            <p key={index}>{date}</p>
+          ))}
+        </div>
+        <div style={{ width: '80%', paddingLeft: '10px' }}>
+          <input
+            type="text"
+            placeholder="Type your message"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+          />
+          <button onClick={handleChat}>Send</button>
+          <p>Response: {response}</p>
+        </div>
       </div>
-      <input
-        type="text"
-        placeholder="Type your message"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-      />
-      <button onClick={handleChat}>Send</button>
-      <p>Response: {response}</p>
     </div>
   );
 }
