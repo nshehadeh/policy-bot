@@ -9,7 +9,7 @@ To run:
 
 Currently Working on:
 - Saving and displaying prevoius chats correctly
-- Improving/upgrading RAG system and prompting
+- Chatbot history and RAG
 
 ## Tech Stack
 ### In Progress
