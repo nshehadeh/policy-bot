@@ -5,8 +5,13 @@ from langchain_core.runnables import RunnablePassthrough
 from dotenv import load_dotenv
 from langchain_pinecone import PineconeVectorStore
 from pprint import pprint
-from langchain.prompts import ChatPromptTemplate
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from threading import Lock
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
 
 # Abstract base classes
 class BaseModel:
@@ -65,30 +70,77 @@ class PineconeVectorStoreModel(BaseVectorStore):
     def get_vector_store(self):
         return PineconeVectorStore(index_name=self.index_name, embedding=self.embeddings)
 
-class SimplePromptTemplate(BasePromptTemplate):
+class QAPromptTemplate(BasePromptTemplate):
     def get_prompt_template(self):
-        template = """Answer the question using the context. Give a one line summary of the context metadata used at the end of your answer:
-            {context}
+        system_prompt = (
+            "You are an assistant for question-answering tasks. "
+            "Use the following pieces of retrieved context to answer "
+            "the question. If you don't know the answer, say that you "
+            "don't know. Use three sentences maximum and keep the "
+            "answer concise. Give a one line summary of the context metadata used at the end of your answer"
+            "\n\n"
+            "{context}"
+        )
 
-            Question: {question}
-            """
-        return ChatPromptTemplate.from_template(template)
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt),
+                MessagesPlaceholder("chat_history"),
+                ("human", "{input}"),
+            ]
+        )
+        return prompt
+    
+class ContextPromptTemplate(BasePromptTemplate):
+    def get_prompt_template(self):
+        contextualize_q_system_prompt = (
+            "Given a chat history and the latest user question "
+            "which might reference context in the chat history, "
+            "formulate a standalone question which can be understood "
+            "without the chat history. Do NOT answer the question, "
+            "just reformulate it if needed and otherwise return it as is."
+        )
+
+        contextualize_q_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", contextualize_q_system_prompt),
+                MessagesPlaceholder("chat_history"),
+                ("human", "{input}"),
+            ]
+        )
+        return contextualize_q_prompt    
 
 # Generator class
 class Generator:
-    def __init__(self, llm, retriever, prompt_template):
+    def __init__(self, llm, retriever, qa_prompt_template, context_q_prompt_template, chat_history: ChatMessageHistory):
         self.llm = llm
         self.retriever = retriever
-        self.prompt = prompt_template
-        self.rag_chain = (
-            {"context": self.retriever, "question": RunnablePassthrough()}
-            | self.prompt
-            | self.llm
-            | StrOutputParser()
+        self.qa_prompt = qa_prompt_template
+        self.context_q_prompt = context_q_prompt_template
+        self.chat_history = chat_history
+        
+        self.question_answer_chain = create_stuff_documents_chain(self.llm, self.qa_prompt)
+        self.history_aware_retriever = create_history_aware_retriever(llm, retriever, self.context_q_prompt)
+        self.rag_chain = create_retrieval_chain(self.history_aware_retriever, self.question_answer_chain)
+        
+        self.conversational_rag_chain = RunnableWithMessageHistory(
+            self.rag_chain,
+            self.chat_history,
+            input_messages_key="input",
+            history_messages_key="chat_history",
+            output_messages_key="answer", 
         )
 
-    def generate(self, question):
-        return self.rag_chain.invoke(question)
+    def invoke(self, question):
+        return self.conversational_rag_chain.invoke(
+            {"input": question},
+            config={
+                "configurable": {"session_id": "abc123"}
+                },
+            )["answer"]
+    
+    def update_chat_history(self, new_chat_history: ChatMessageHistory):
+        self.chat_history = new_chat_history
 
 # Singleton RAGSystem
 # Can eventually improve on configuration management and concurrency
@@ -107,7 +159,8 @@ class RAGSystem:
                  model: BaseModel = None, 
                  embeddings: BaseEmbeddings = None, 
                  vector_store: BaseVectorStore = None, 
-                 prompt_template: BasePromptTemplate = None):
+                 prompt_template: BasePromptTemplate = None,
+                 chat_history: ChatMessageHistory = ChatMessageHistory()):
         if not hasattr(self, '_initialized'):  # Ensures __init__ is run only once
             load_dotenv()
             self._load_environment_variables()
@@ -116,12 +169,14 @@ class RAGSystem:
             self.llm = (model or OpenAIModel()).get_model()
             self.embeddings = (embeddings or OpenAIEmbeddingsModel()).get_embeddings()
             self.vector_store = (vector_store or PineconeVectorStoreModel(index_name="langchain-index", embeddings=self.embeddings)).get_vector_store()
+            # TODO make and improve retriever class by making context aware, getting full documents from mongodb, etc
             self.retriever = self.vector_store.as_retriever(
                 search_type="similarity",
                 search_kwargs={'k': 3}
             )
-            self.prompt = (prompt_template or SimplePromptTemplate()).get_prompt_template()
-            self.generator = Generator(self.llm, self.retriever, self.prompt)
+            self.qa_prompt = (prompt_template or QAPromptTemplate()).get_prompt_template()
+            self.context_prompt = ContextPromptTemplate().get_prompt_template()
+            self.generator = Generator(self.llm, self.retriever,  self.qa_prompt, self.context_prompt)
             self._initialized = True
             self.msg = "I, the policy bot, have decided to tell you:"
 
@@ -133,7 +188,23 @@ class RAGSystem:
         self.llm = model.get_model()
         self.generator.llm = self.llm 
 
-
     def handle_query(self, question):
         generated = self.generator.generate(question)
+        self.generator.memory.save_context({"input": question}, {"output": generated})
         return f"{self.msg} {generated}"
+    
+    # TODO can integrate with ChatMessageHistory eventualy instead of JSON objects,
+    # would just have to adjust frontend, specifically with postgresql class
+    
+    # called when user selects previous chat and also when RAG is created I guess
+    # builds new chatmessagehistory based on messages
+    # can customize this later
+    def load_memory(self, chat_history) -> ChatMessageHistory:
+        # Load the chat history into memory
+        # for user, ai in chat_history ... populate ChatMessageHistory class and return it
+        for entry in chat_history:
+        # self.generator.update...            
+            return None
+
+    def update_chat_history(self, chat_history):
+        self.generator.update_chat_history(self.load_memory(chat_history))
