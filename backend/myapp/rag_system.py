@@ -125,7 +125,7 @@ class Generator:
         
         self.conversational_rag_chain = RunnableWithMessageHistory(
             self.rag_chain,
-            self.chat_history,
+            self.get_session_history,
             input_messages_key="input",
             history_messages_key="chat_history",
             output_messages_key="answer", 
@@ -134,13 +134,13 @@ class Generator:
     def invoke(self, question):
         return self.conversational_rag_chain.invoke(
             {"input": question},
-            config={
-                "configurable": {"session_id": "abc123"}
-                },
             )["answer"]
     
     def update_chat_history(self, new_chat_history: ChatMessageHistory):
         self.chat_history = new_chat_history
+        
+    def get_session_history(self):
+        return self.chat_history
 
 # Singleton RAGSystem
 # Can eventually improve on configuration management and concurrency
@@ -176,7 +176,7 @@ class RAGSystem:
             )
             self.qa_prompt = (prompt_template or QAPromptTemplate()).get_prompt_template()
             self.context_prompt = ContextPromptTemplate().get_prompt_template()
-            self.generator = Generator(self.llm, self.retriever,  self.qa_prompt, self.context_prompt)
+            self.generator = Generator(self.llm, self.retriever,  self.qa_prompt, self.context_prompt, chat_history)
             self._initialized = True
             self.msg = "I, the policy bot, have decided to tell you:"
 
@@ -189,8 +189,9 @@ class RAGSystem:
         self.generator.llm = self.llm 
 
     def handle_query(self, question):
-        generated = self.generator.generate(question)
-        self.generator.memory.save_context({"input": question}, {"output": generated})
+        generated = self.generator.invoke(question)
+        # self.generator.memory.save_context({"input": question}, {"output": generated})
+        # save question and answer no tnecesssary bedcause handled by generator for the current convo
         return f"{self.msg} {generated}"
     
     # TODO can integrate with ChatMessageHistory eventualy instead of JSON objects,

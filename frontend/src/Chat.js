@@ -8,7 +8,9 @@ function Chat({ token }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [showSettings, setShowSettings] = useState(false);
-
+  const [sessions, setSessions] = useState([]);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  
   useEffect(() => {
     // Fetch chat history and user name on load
     const fetchUserData = async () => {

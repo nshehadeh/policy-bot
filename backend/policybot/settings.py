@@ -89,7 +89,6 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-AUTH_USER_MODEL = 'myapp.CustomUser'
 
 
 # Password validation
