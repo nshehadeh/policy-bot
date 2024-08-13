@@ -85,12 +85,16 @@ class LoadPreviousChatView(APIView):
     
 class UserSettingsView(APIView):
     permission_classes = [IsAuthenticated]
-    """
+
     def get(self, request, *args, **kwargs):
-        settings = UserSettings.objects.filter(user=request.user)
-        serializer = UserSettingsSerializer(settings, many=True)
-        return Response(serializer.data)
-    """
+        user = request.user
+        return Response({
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'email': user.email,
+            'username': user.username,
+        })
+        
     def post(self, request, *args, **kwargs):
         user = request.user
         serializer = UpdateSettingsSerializer(user, data=request.data, partial=True)
@@ -98,3 +102,5 @@ class UserSettingsView(APIView):
             serializer.save()
             return Response({'status': 'settings updated', 'updated_fields': serializer.data})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
