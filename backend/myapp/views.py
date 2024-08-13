@@ -16,19 +16,6 @@ class UserCreate(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-"""
-class StartNewChatView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):
-        serializer = StartNewChatSerializer(data=request.data)
-        if serializer.is_valid() and serializer.validated_data['new_chat']:
-            # Create a new chat session
-            chat_session = ChatSession.objects.create(user=request.user)
-            return Response({'session_id': str(chat_session.session_id)}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  
-"""
-
 
 class ChatView(APIView):
     permission_classes = [IsAuthenticated]
@@ -43,6 +30,7 @@ class ChatView(APIView):
                 chat_session = ChatSession.objects.get(session_id=session_id, user=request.user)
             else:
                 chat_session = ChatSession.objects.create(user=request.user)
+                print("Creating new chat session, id: " + str(chat_session.session_id))
             
             try:
                 rag_system = RAGSystem()                
@@ -52,7 +40,7 @@ class ChatView(APIView):
                 ChatMessage.objects.create(session=chat_session, role='human', content=user_message)
                 ChatMessage.objects.create(session=chat_session, role='ai', content=response)
                                 
-                return Response({'message': user_message, 'response': response})
+                return Response({'message': user_message, 'response': response, 'session_id': chat_session.session_id})
             except TypeError as e:
                 print(f"TypeError: {e}")
                 return Response({'error': 'An error occurred while processing your request.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

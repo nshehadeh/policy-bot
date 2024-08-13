@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from './api';
 import './Chat.css';
 
 function Chat({ token }) {
@@ -12,10 +12,10 @@ function Chat({ token }) {
   const [currentSessionId, setCurrentSessionId] = useState(null);
 
   // Fetch chat sessions on component mount
-  useEffect(() => { 
+  useEffect(() => {
     const fetchChatSessions = async () => {
       try {
-        const sessionsRes = await axios.get('/api/chat/sessions/', {
+        const sessionsRes = await api.get('/chat/sessions/', {
           headers: { Authorization: `Token ${token}` },
         });
         setSessions(sessionsRes.data);
@@ -31,8 +31,8 @@ function Chat({ token }) {
     if (currentSessionId) {
       const fetchChatHistory = async () => {
         try {
-          const res = await axios.post(
-            '/api/chat/load/',
+          const res = await api.post(
+            '/chat/load/',
             { session_id: currentSessionId },
             {
               headers: { Authorization: `Token ${token}` },
@@ -49,8 +49,8 @@ function Chat({ token }) {
 
   const handleChat = async () => {
     try {
-      const res = await axios.post(
-        '/api/chat/',
+      const res = await api.post(
+        '/chat/',
         { message, session_id: currentSessionId },
         {
           headers: { Authorization: `Token ${token}` },
@@ -65,16 +65,20 @@ function Chat({ token }) {
 
   const handleStartNewChat = async () => {
     try {
-      const res = await axios.post(
-        '/api/chat/',
-        { message },
+      const res = await api.post(
+        '/chat/',
+        { message },  // Start a new chat session with the first message
         {
           headers: { Authorization: `Token ${token}` },
         }
       );
       setCurrentSessionId(res.data.session_id);
-      setHistory([{ role: 'human', content: message }, { role: 'ai', content: res.data.response }]);
+      setHistory([{ role: 'human', content: message }, { role: 'ai', content: res.data.response }]);  // Initialize chat history
       setMessage(''); // Clear the input after sending
+      const sessionsRes = await api.get('/chat/sessions/', {  // Reload chat sessions
+        headers: { Authorization: `Token ${token}` },
+      });
+      //setSessions(sessionsRes.data);  // Update the list of sessions
     } catch (error) {
       console.error('Error starting new chat:', error);
     }
@@ -82,8 +86,8 @@ function Chat({ token }) {
 
   const handleNameChange = async () => {
     try {
-      await axios.post(
-        '/api/user_settings/',  // CHANGE: Adjusted the URL endpoint for user settings
+      await api.post(
+        '/user_settings/',  
         { first_name: firstName, last_name: lastName },
         {
           headers: { Authorization: `Token ${token}` },
@@ -96,9 +100,9 @@ function Chat({ token }) {
     }
   };
 
-  const handleFetchUserData = async () => {  // CHANGE: Moved user data fetching logic here
+  const handleFetchUserData = async () => {  
     try {
-      const userRes = await axios.get('/api/user_settings/', {  // CHANGE: Adjusted the URL endpoint for fetching user data
+      const userRes = await api.get('/user_settings/', {  
         headers: { Authorization: `Token ${token}` },
       });
       setFirstName(userRes.data.first_name);
@@ -112,7 +116,10 @@ function Chat({ token }) {
     <div className="chat-container">
       <div className="chat-header">
         <h2>Chat</h2>
-        <button onClick={() => { setShowSettings(!showSettings); if (!showSettings) handleFetchUserData(); }}>  {/* CHANGE: Added user data fetching on settings button click */}
+        <button onClick={handleStartNewChat} style={{ position: 'absolute', right: '10px', top: '10px' }}>  {/* CHANGE: Moved "Start New Chat" button to the top right corner */}
+          Start New Chat
+        </button>
+        <button onClick={() => { setShowSettings(!showSettings); if (!showSettings) handleFetchUserData(); }}>
           Settings
         </button>
       </div>
@@ -168,10 +175,9 @@ function Chat({ token }) {
               onChange={(e) => setMessage(e.target.value)}
             />
             {currentSessionId ? (
-              <button onClick={handleChat}>Send</button>
-            ) : (
-              <button onClick={handleStartNewChat}>Start New Chat</button>
-            )}
+              <button onClick={handleChat}>Send</button>)
+              : (
+              <button onClick={handleStartNewChat}>Start New Chat</button>)}
           </div>
         </div>
       </div>
