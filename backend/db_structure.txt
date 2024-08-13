@@ -1,0 +1,20 @@
+User (auth_user)
+|   - id (Primary Key)
+|   - username
+|   - email
+|   - first_name
+|   - last_name
+|   - password
+|
+|--< ChatSession (myapp_chatsession)
+|       - id (Primary Key)
+|       - user_id (Foreign Key to auth_user)
+|       - session_id (UUID, unique for each session)
+|       - created_at (Timestamp when session was created)
+|
+|       |--< ChatMessage (myapp_chatmessage)
+|               - id (Primary Key)
+|               - session_id (Foreign Key to myapp_chatsession)
+|               - role (Human or AI)
+|               - content (Text of the message)
+|               - created_at (Timestamp when message was created)
