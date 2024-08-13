@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import ChatMessageSerializer, StartNewChatSerializer, LoadPreviousChatSerializer, UserSerializer
+from .serializers import ChatMessageSerializer, StartNewChatSerializer, LoadPreviousChatSerializer, UserSerializer, UpdateSettingsSerializer
 from .rag_system import RAGSystem
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
