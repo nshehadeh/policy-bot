@@ -178,7 +178,7 @@ class RAGSystem:
             self.context_prompt = ContextPromptTemplate().get_prompt_template()
             self.generator = Generator(self.llm, self.retriever,  self.qa_prompt, self.context_prompt, chat_history)
             self._initialized = True
-            self.msg = "I, the policy bot, have decided to tell you:"
+            self.msg = "Policy Bot: "
 
     def _load_environment_variables(self):
         os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
