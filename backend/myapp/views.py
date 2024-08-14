@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
 from .models import ChatSession, ChatMessage
 from django.contrib.auth.models import User
+from langchain.memory import ChatMessageHistory
 
 
 
@@ -69,7 +70,16 @@ class LoadPreviousChatView(APIView):
                 chat_history = ChatMessage.objects.filter(session=chat_session).order_by('created_at')
                 rag_system = RAGSystem()
                 print(message.content for message in chat_history)
-                rag_system.load_memory(chat_history)
+                history = ChatMessageHistory()
+
+                # Iterate through chat_history and add messages to ChatMessageHistory
+                for message in chat_history:
+                    if message.role == 'human':
+                        history.add_user_message(message.content)
+                    elif message.role == 'ai':
+                        history.add_ai_message(message.content)
+
+                rag_system.load_memory(history)
                 
                 chat_history_data = [{'role': message.role, 'content': message.content} for message in chat_history]
                 

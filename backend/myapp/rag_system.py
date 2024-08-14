@@ -200,12 +200,5 @@ class RAGSystem:
     # called when user selects previous chat and also when RAG is created I guess
     # builds new chatmessagehistory based on messages
     # can customize this later
-    def load_memory(self, chat_history) -> ChatMessageHistory:
-        # Load the chat history into memory
-        # for user, ai in chat_history ... populate ChatMessageHistory class and return it
-        for entry in chat_history:
-        # self.generator.update...            
-            return None
-
-    def update_chat_history(self, chat_history):
-        self.generator.update_chat_history(self.load_memory(chat_history))
+    def load_memory(self, chat_history: ChatMessageHistory):
+        self.generator.update_chat_history(chat_history)
