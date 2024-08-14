@@ -22,12 +22,13 @@ Current look:
 | **Django Backend**       | REST API, User Auth, LLM Integration, RAG System|
 | **LangChain & ChatGPT**  | Query Processing, Response Generation          |
 | **MongoDB**              | Document Storage, User Data, Conversation History|
+| **React Frontend**       | UI Components, State Management, Chat UI       |
+
 
 ### Future
 
 | Component                | Description                                    |
 |--------------------------|------------------------------------------------|
-| **React Frontend**       | UI Components, State Management, Chat UI       |
 | **Deployment & Hosting** | AWS, Docker, Kubernetes                        |
 | **CI/CD Pipeline**       | GitHub Actions, Jenkins                        |
 
