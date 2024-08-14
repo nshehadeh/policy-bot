@@ -27,6 +27,7 @@ function Chat({ token }) {
   }, [token]);
 
   // Fetch chat history when a session is selected
+  /*
   useEffect(() => {
     if (currentSessionId) {
       const fetchChatHistory = async () => {
@@ -46,7 +47,7 @@ function Chat({ token }) {
       fetchChatHistory();
     }
   }, [currentSessionId, token]);
-
+*/
   const handleChat = async () => {
     try {
       const res = await api.post(
@@ -73,12 +74,12 @@ function Chat({ token }) {
         }
       );
       setCurrentSessionId(res.data.session_id);
-      setHistory([{ role: 'human', content: message }, { role: 'ai', content: res.data.response }]);  // Initialize chat history
+      setHistory([{ role: 'human', content: message }, { role: 'ai', content: res.data.response }]);
       setMessage(''); // Clear the input after sending
       const sessionsRes = await api.get('/chat/sessions/', {  // Reload chat sessions
         headers: { Authorization: `Token ${token}` },
       });
-      //setSessions(sessionsRes.data);  // Update the list of sessions
+      // setSessions(sessionsRes.data);  // Update the list of sessions
     } catch (error) {
       console.error('Error starting new chat:', error);
     }
