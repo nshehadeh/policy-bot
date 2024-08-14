@@ -8,8 +8,8 @@ To run:
 - Uses postgresql hosted locally, change all variables in env for databases and API keys
 
 Currently Working on:
-- Saving and displaying prevoius chats correctly
-- Chatbot history and RAG
+- Loading history when old chats are selected
+- Improving RAG
 
 ## Tech Stack
 ### In Progress
