@@ -11,6 +11,7 @@ Currently working on:
 - Improving RAG
 
 Current look:
+
 ![alt text](chatpage.png)
 
 ## Tech Stack
