@@ -141,76 +141,81 @@ function Chat({ token }) {
   };
 
   return (
-    <div className="chat-container">
-      <div className="chat-header">
-        <h2>Chat</h2>
-        {currentSessionId && (
-          <button onClick={handleStartNewChat} style={{ position: 'absolute', right: '10px', top: '10px' }}>
-            Start New Chat
-          </button>)}
-        <button onClick={() => { setShowSettings(!showSettings); if (!showSettings) handleFetchUserData(); }}>
-          Settings
-        </button>
-      </div>
-      
-      {showSettings && (
-        <div className="settings-panel">
-          <input
-            type="text"
-            placeholder="First Name"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Last Name"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-          />
-          <button onClick={handleNameChange}>Update Name</button>
-        </div>
-      )}
+<div className="chat-container">
+  <div className="chat-header">
+    {currentSessionId && (
+      <button onClick={handleStartNewChat} className="button-standard">
+        Start New Chat
+      </button>
+    )}
+    <button onClick={() => { setShowSettings(!showSettings); if (!showSettings) handleFetchUserData(); }} className="button-standard">
+      Settings
+    </button>
+  </div>
 
-      <div className="chat-content">
-        <div className="chat-sidebar">
-          <h3>Previous Chats</h3>
-          <div className="sessions-list">
-            {sessions.map((session) => (
-              <button
-                key={session.session_id}
-                onClick={() => handleLoadPreviousChat(session.session_id)}  // Load chat history when a previous chat is selected
-                className={session.session_id === currentSessionId ? 'active' : ''}
-              >
-                {new Date(session.created_at).toLocaleString()}
-              </button>
-            ))}
-          </div>
-        </div>
+  {showSettings && (
+    <div className="settings-panel">
+      <input
+        type="text"
+        placeholder="First Name"
+        value={firstName}
+        onChange={(e) => setFirstName(e.target.value)}
+      />
+      <input
+        type="text"
+        placeholder="Last Name"
+        value={lastName}
+        onChange={(e) => setLastName(e.target.value)}
+      />
+      <button onClick={handleNameChange} className="button-standard">Update Name</button>
+    </div>
+  )}
 
-        <div className="chat-main">
-          <div className="chat-history">
-            {Array.isArray(history) && history.map((chat, index) => (
-              <div key={index} className={`chat-message ${chat.role}`}>
-                <p>{chat.content}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="chat-input">
-            <input
-              type="text"
-              placeholder="Type your message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-            />
-            {currentSessionId ? (
-              <button onClick={handleChat}>Send</button>)
-              : (
-              <button onClick={handleStartNewChat}>Start New Chat</button>)}
-          </div>
-        </div>
+  <div className="chat-content">
+    <div className="chat-sidebar">
+     
+      <h3>Previous Chats</h3>
+      <div className="sessions-list">
+        {sessions.map((session) => (
+          <button
+            key={session.session_id}
+            onClick={() => handleLoadPreviousChat(session.session_id)}
+            className={session.session_id === currentSessionId ? 'active' : ''}
+          >
+            {new Date(session.created_at).toLocaleString()}
+          </button>
+        ))}
       </div>
     </div>
+
+    <div className="chat-main">
+      <div className="chat-history">
+        {Array.isArray(history) && history.map((chat, index) => (
+          <div key={index} className={`chat-message ${chat.role}`}>
+            <p>{chat.content}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="chat-input">
+        <input
+          type="text"
+          placeholder="Type your message"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+        />
+        {currentSessionId ? (
+          <button onClick={handleChat} className="button-standard">Send</button>
+        ) : (
+          <button onClick={handleStartNewChat} className="button-standard">Start New Chat</button>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
   );
 }
 
