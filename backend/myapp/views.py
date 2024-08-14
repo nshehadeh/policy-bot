@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import ChatMessageSerializer, StartNewChatSerializer, LoadPreviousChatSerializer, UserSerializer, UpdateSettingsSerializer
+from .serializers import ChatMessageSerializer, LoadPreviousChatSerializer, UserSerializer, UpdateSettingsSerializer
 from .rag_system import RAGSystem
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
@@ -23,7 +23,7 @@ class ChatView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = ChatMessageSerializer(data=request.data)
         if serializer.is_valid():
-            user_message = serializer.validated_data['message']
+            user_message = serializer.validated_data.get('message')
             session_id = serializer.validated_data.get('session_id')
             
             if session_id:
@@ -32,6 +32,9 @@ class ChatView(APIView):
                 chat_session = ChatSession.objects.create(user=request.user)
                 print("Creating new chat session, id: " + str(chat_session.session_id))
             
+            # If there's no user_message, simply return the session_id without processing a message
+            if not user_message:
+                return Response({'session_id': chat_session.session_id}, status=status.HTTP_201_CREATED)
             try:
                 rag_system = RAGSystem()                
                 response = rag_system.handle_query(user_message)
@@ -60,11 +63,17 @@ class LoadPreviousChatView(APIView):
         if session_id:
             try:
                 chat_session = ChatSession.objects.get(session_id=session_id, user=request.user)
+                # Save adjusts the date
+                chat_session.save()
+                
                 chat_history = ChatMessage.objects.filter(session=chat_session).order_by('created_at')
                 rag_system = RAGSystem()
+                print(message.content for message in chat_history)
                 rag_system.load_memory(chat_history)
                 
-                return Response({'session_id': str(chat_session.session_id)}, status=status.HTTP_200_OK)
+                chat_history_data = [{'role': message.role, 'content': message.content} for message in chat_history]
+                
+                return Response({'session_id': str(chat_session.session_id), 'chat_history': chat_history_data}, status=status.HTTP_200_OK)
             except ChatSession.DoesNotExist:
                 return Response({'error': 'Session not found'}, status=status.HTTP_404_NOT_FOUND)
         return Response({'error': 'Session ID is required'}, status=status.HTTP_400_BAD_REQUEST)

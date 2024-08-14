@@ -25,9 +25,28 @@ function Chat({ token }) {
     };
     fetchChatSessions();
   }, [token]);
-
-  // Fetch chat history when a session is selected
+  
+  const handleLoadPreviousChat = async (sessionId) => {
+    setCurrentSessionId(sessionId);
+    setHistory([]);  // Clear any existing history
+  
+    try {
+      const res = await api.post(
+        '/chat/load/',
+        { session_id: sessionId },
+        {
+          headers: { Authorization: `Token ${token}` },
+        }
+      );
+      console.log("Loaded Chat History:", res.data.chat_history);  // Log the chat history to the console
+   
+      setHistory(res.data.chat_history || []);  // Ensure chat_history is an array
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+    }
+  };
   /*
+  // Fetch chat history when a session is selected
   useEffect(() => {
     if (currentSessionId) {
       const fetchChatHistory = async () => {
@@ -66,20 +85,28 @@ function Chat({ token }) {
 
   const handleStartNewChat = async () => {
     try {
+
+      let data = {}
+      // Check if message is empty
+      if(message.trim()) {
+        data = {message};
+      }
       const res = await api.post(
         '/chat/',
-        { message },  // Start a new chat session with the first message
-        {
-          headers: { Authorization: `Token ${token}` },
-        }
+        data,
+        {headers: { Authorization: `Token ${token}` },}
       );
+      setHistory([]);
+      if(data.message){
+        setHistory([{ role: 'human', content: message }, { role: 'ai', content: res.data.response }]);
+         // Clear the input after sending
+        setMessage('');
+      }
       setCurrentSessionId(res.data.session_id);
-      setHistory([{ role: 'human', content: message }, { role: 'ai', content: res.data.response }]);
-      setMessage(''); // Clear the input after sending
       const sessionsRes = await api.get('/chat/sessions/', {  // Reload chat sessions
         headers: { Authorization: `Token ${token}` },
       });
-      // setSessions(sessionsRes.data);  // Update the list of sessions
+      setSessions(sessionsRes.data);  // Update the list of sessions
     } catch (error) {
       console.error('Error starting new chat:', error);
     }
@@ -117,9 +144,10 @@ function Chat({ token }) {
     <div className="chat-container">
       <div className="chat-header">
         <h2>Chat</h2>
-        <button onClick={handleStartNewChat} style={{ position: 'absolute', right: '10px', top: '10px' }}>  {/* CHANGE: Moved "Start New Chat" button to the top right corner */}
-          Start New Chat
-        </button>
+        {currentSessionId && (
+          <button onClick={handleStartNewChat} style={{ position: 'absolute', right: '10px', top: '10px' }}>
+            Start New Chat
+          </button>)}
         <button onClick={() => { setShowSettings(!showSettings); if (!showSettings) handleFetchUserData(); }}>
           Settings
         </button>
@@ -150,7 +178,7 @@ function Chat({ token }) {
             {sessions.map((session) => (
               <button
                 key={session.session_id}
-                onClick={() => setCurrentSessionId(session.session_id)}
+                onClick={() => handleLoadPreviousChat(session.session_id)}  // Load chat history when a previous chat is selected
                 className={session.session_id === currentSessionId ? 'active' : ''}
               >
                 {new Date(session.created_at).toLocaleString()}
@@ -161,7 +189,7 @@ function Chat({ token }) {
 
         <div className="chat-main">
           <div className="chat-history">
-            {history.map((chat, index) => (
+            {Array.isArray(history) && history.map((chat, index) => (
               <div key={index} className={`chat-message ${chat.role}`}>
                 <p>{chat.content}</p>
               </div>

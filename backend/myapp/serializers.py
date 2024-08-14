@@ -13,10 +13,6 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
         return user
-    
-class ChatMessageSerializer(serializers.Serializer):
-    message = serializers.CharField()
-    response = serializers.CharField(read_only=True)
 
 class UpdateSettingsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,12 +20,9 @@ class UpdateSettingsSerializer(serializers.ModelSerializer):
         fields = ['first_name', 'last_name']
 
 class ChatMessageSerializer(serializers.Serializer):
-    message = serializers.CharField()
+    message = serializers.CharField(required=False)
     response = serializers.CharField(read_only=True)
     session_id = serializers.UUIDField(required=False)
-    
-class StartNewChatSerializer(serializers.Serializer):
-    new_chat = serializers.BooleanField(default=True)
     
 class LoadPreviousChatSerializer(serializers.ModelSerializer):
     class Meta:
