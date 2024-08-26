@@ -8,7 +8,7 @@ To run:
 - Uses postgresql for Django ORM hosted locally, change all variables in env for databases and API keys
 
 Currently working on:
-- Improving RAG
+- Streamed Responses
 
 Current look:
 
