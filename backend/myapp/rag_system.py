@@ -121,6 +121,17 @@ class Generator:
         
         self.question_answer_chain = create_stuff_documents_chain(self.llm, self.qa_prompt)
         self.history_aware_retriever = create_history_aware_retriever(llm, retriever, self.context_q_prompt)
+
+        # RAG-Fusion init
+        self.rag_fusion_prompt = self._init_rag_fusion_prompt()
+        self.generate_queries = (
+            self.rag_fusion_prompt 
+            | ChatOpenAI(temperature=0)
+            | StrOutputParser() 
+            | (lambda x: x.split("\n"))
+        )
+        
+        self.retrieval_chain_rag_fusion = self.generate_queries | retriever.map() | self._reciprocal_rank_fusion
         self.rag_chain = create_retrieval_chain(self.history_aware_retriever, self.question_answer_chain)
         
         self.conversational_rag_chain = RunnableWithMessageHistory(
@@ -131,10 +142,35 @@ class Generator:
             output_messages_key="answer", 
         )
 
+    def _init_rag_fusion_prompt(self):
+        template = """You are a helpful assistant that generates multiple search queries based on a single input query. \n
+                      Generate multiple search queries related to: {question} \n
+                      Output (4 queries):"""
+        return ChatPromptTemplate.from_template(template)
+
+    def _reciprocal_rank_fusion(self, results: list[list], k=60):
+        # Reciprocal rank fusion for re-ranking documents
+        fused_scores = {}
+        for docs in results:
+            for rank, doc in enumerate(docs):
+                doc_str = dumps(doc)
+                if doc_str not in fused_scores:
+                    fused_scores[doc_str] = 0
+                fused_scores[doc_str] += 1 / (rank + k)
+        
+        reranked_results = [
+            (loads(doc), score)
+            for doc, score in sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)
+        ]
+        return reranked_results
+
     def invoke(self, question):
+        # Use RAG-Fusion retrieval chain for getting documents
+        docs = self.retrieval_chain_rag_fusion.invoke({"question": question})
+        
         return self.conversational_rag_chain.invoke(
-            {"input": question},
-            )["answer"]
+            {"input": question, "context": docs},
+        )["answer"]
     
     def update_chat_history(self, new_chat_history: ChatMessageHistory):
         self.chat_history = new_chat_history
