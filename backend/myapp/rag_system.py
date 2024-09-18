@@ -201,7 +201,6 @@ class RAGSystem:
             load_dotenv()
             self._load_environment_variables()
 
-            # Use default values if none are provided
             self.llm = (model or OpenAIModel()).get_model()
             self.embeddings = (embeddings or OpenAIEmbeddingsModel()).get_embeddings()
             self.vector_store = (vector_store or PineconeVectorStoreModel(index_name="langchain-index", embeddings=self.embeddings)).get_vector_store()
@@ -227,13 +226,11 @@ class RAGSystem:
     def handle_query(self, question):
         generated = self.generator.invoke(question)
         # self.generator.memory.save_context({"input": question}, {"output": generated})
-        # save question and answer no tnecesssary bedcause handled by generator for the current convo
         return f"{self.msg} {generated}"
     
     # TODO can integrate with ChatMessageHistory eventualy instead of JSON objects,
     # would just have to adjust frontend, specifically with postgresql class
     
-    # called when user selects previous chat and also when RAG is created I guess
     # builds new chatmessagehistory based on messages
     # can customize this later
     def load_memory(self, chat_history: ChatMessageHistory):
