@@ -14,7 +14,7 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
 # Abstract base classes
-class BaseModel:
+class BaseModel: 
     def get_model(self):
         raise NotImplementedError
 
@@ -122,7 +122,7 @@ class Generator:
         self.question_answer_chain = create_stuff_documents_chain(self.llm, self.qa_prompt)
         self.history_aware_retriever = create_history_aware_retriever(llm, retriever, self.context_q_prompt)
 
-        # RAG-Fusion init
+        """
         self.rag_fusion_prompt = self._init_rag_fusion_prompt()
         self.generate_queries = (
             self.rag_fusion_prompt 
@@ -132,6 +132,7 @@ class Generator:
         )
         
         self.retrieval_chain_rag_fusion = self.generate_queries | retriever.map() | self._reciprocal_rank_fusion
+        """
         self.rag_chain = create_retrieval_chain(self.history_aware_retriever, self.question_answer_chain)
         
         self.conversational_rag_chain = RunnableWithMessageHistory(
@@ -141,13 +142,16 @@ class Generator:
             history_messages_key="chat_history",
             output_messages_key="answer", 
         )
+        
+    """
+    RAGFusionNOT in use right now (delete those \ when deleting comment)
 
     def _init_rag_fusion_prompt(self):
-        template = """You are a helpful assistant that generates multiple search queries based on a single input query. \n
+        template = \"""You are a helpful assistant that generates multiple search queries based on a single input query. \n
                       Generate multiple search queries related to: {question} \n
-                      Output (4 queries):"""
+                      Output (4 queries):\"""
         return ChatPromptTemplate.from_template(template)
-
+    
     def _reciprocal_rank_fusion(self, results: list[list], k=60):
         # Reciprocal rank fusion for re-ranking documents
         fused_scores = {}
@@ -163,15 +167,18 @@ class Generator:
             for doc, score in sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)
         ]
         return reranked_results
-
+    """
     def invoke(self, question):
         # Use RAG-Fusion retrieval chain for getting documents
         docs = self.retrieval_chain_rag_fusion.invoke({"question": question})
-        
+        """
         return self.conversational_rag_chain.invoke(
             {"input": question, "context": docs},
         )["answer"]
-    
+        """
+        return self.conversational_rag_chain.invoke( {"input": question},
+            )["answer"]
+        
     def update_chat_history(self, new_chat_history: ChatMessageHistory):
         self.chat_history = new_chat_history
         
