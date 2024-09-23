@@ -9,6 +9,7 @@ To run:
 
 Currently working on:
 - Streamed Responses
+- Testing RAG-Fusion
 
 Current look:
 
