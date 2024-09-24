@@ -47,17 +47,30 @@ class UpdateSettingsSerializer(serializers.ModelSerializer):
 
 class ChatMessageSerializer(serializers.Serializer):
     """
-    Serializer for handling chat messages.
+    Serializer for handling chat messages in a streaming context.
 
     Attributes:
-        message (CharField): The user message, optional.
-        response (CharField): The AI response, read-only.
-        session_id (UUIDField): The session ID, optional.
+        message (CharField): The user message, optional for input.
+        session_id (UUIDField): The session ID, optional for input.
+        response (CharField): The AI response, read-only, used for non-streaming responses.
+        is_streaming (BooleanField): Indicates if the response is streamed, read-only.
     """
 
-    message = serializers.CharField(required=False)
-    response = serializers.CharField(read_only=True)
+    # Input fields
+    message = serializers.CharField(required=False, write_only=True)
     session_id = serializers.UUIDField(required=False)
+
+    # Output fields
+    response = serializers.CharField(read_only=True)
+    is_streaming = serializers.BooleanField(read_only=True, default=True)
+
+    def validate(self, data):
+        """
+        Check that at least one of message or session_id is provided.
+        """
+        if not data.get('message') and not data.get('session_id'):
+            raise serializers.ValidationError("Either 'message' or 'session_id' must be provided.")
+        return data
 
 class LoadPreviousChatSerializer(serializers.ModelSerializer):
     """

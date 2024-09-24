@@ -12,6 +12,8 @@ from langchain.chains import create_history_aware_retriever, create_retrieval_ch
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from time import sleep
+
 
 # Abstract base classes
 class BaseModel: 
@@ -170,14 +172,16 @@ class Generator:
     """
     def invoke(self, question):
         # Use RAG-Fusion retrieval chain for getting documents
-        docs = self.retrieval_chain_rag_fusion.invoke({"question": question})
         """
+        docs = self.retrieval_chain_rag_fusion.invoke({"question": question})
         return self.conversational_rag_chain.invoke(
             {"input": question, "context": docs},
         )["answer"]
         """
-        return self.conversational_rag_chain.invoke( {"input": question},
-            )["answer"]
+        for chunk in self.conversational_rag_chain.stream({"input": question}):
+            if 'answer' in chunk:
+                yield chunk['answer']
+                sleep(0.2)
         
     def update_chat_history(self, new_chat_history: ChatMessageHistory):
         self.chat_history = new_chat_history
@@ -231,14 +235,15 @@ class RAGSystem:
         self.generator.llm = self.llm 
 
     def handle_query(self, question):
-        generated = self.generator.invoke(question)
         # self.generator.memory.save_context({"input": question}, {"output": generated})
-        return f"{self.msg} {generated}"
+        for generated_chunk in self.generator.invoke(question):
+            yield generated_chunk  
+
     
     # TODO can integrate with ChatMessageHistory eventualy instead of JSON objects,
     # would just have to adjust frontend, specifically with postgresql class
     
-    # builds new chatmessagehistory based on messages
+    # builds new chatmessagehistory based on message
     # can customize this later
     def load_memory(self, chat_history: ChatMessageHistory):
         self.generator.update_chat_history(chat_history)

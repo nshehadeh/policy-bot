@@ -10,6 +10,7 @@ function Chat({ token }) {
   const [showSettings, setShowSettings] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Fetch chat sessions on component mount
   useEffect(() => {
@@ -45,41 +46,85 @@ function Chat({ token }) {
       console.error('Error loading chat history:', error);
     }
   };
-  /*
-  // Fetch chat history when a session is selected
-  useEffect(() => {
-    if (currentSessionId) {
-      const fetchChatHistory = async () => {
-        try {
-          const res = await api.post(
-            '/chat/load/',
-            { session_id: currentSessionId },
-            {
-              headers: { Authorization: `Token ${token}` },
-            }
-          );
-          setHistory(res.data.chat_history);
-        } catch (error) {
-          console.error('Error loading chat history:', error);
-        }
-      };
-      fetchChatHistory();
-    }
-  }, [currentSessionId, token]);
-*/
+  
+  // using fetch instead of axios because of streaming issues, can look into this later
   const handleChat = async () => {
+    setIsLoading(true);
     try {
-      const res = await api.post(
-        '/chat/',
-        { message, session_id: currentSessionId },
-        {
-          headers: { Authorization: `Token ${token}` },
+      console.log("Sending request...");
+  
+      // Switch to the Fetch API to handle streams
+      const response = await fetch('/api/chat/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+          session_id: currentSessionId,
+        })
+      });
+  
+      console.log("Response received, starting to read stream...");      
+      const reader = response.body.getReader();
+      let LLMresponse = '';
+      while(true){
+
+        const {done,value} = await reader.read();
+        if(done){
+          console.log("Stream finished");
+          break;
         }
-      );
-      setHistory([...history, { role: 'human', content: message }, { role: 'ai', content: res.data.response }]);
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n\n');
+
+        for(const line of lines) {
+          if (line.startsWith('data: ')) {
+            // remove data: prefix from the data
+            const data = JSON.parse(line.slice(6));
+    
+            switch(data.type) {
+              case 'initial':
+                console.log("Initial package recieved");
+                setCurrentSessionId(data.session_id);
+                break;
+              case 'chunk':
+                console.log("Chunk recieved", data.chunk);
+                setHistory(prev => {
+                  const newHistory = [...prev];
+                  LLMresponse += data.chunk
+                  if (newHistory.length && newHistory[newHistory.length - 1]?.role === 'ai') {
+                    newHistory[newHistory.length - 1].content = LLMresponse;
+                  } else {
+                    newHistory.push({ role: 'ai', content: LLMresponse });
+                  }
+                  console.log(newHistory)
+                  return newHistory;
+                });
+                break;
+              case 'final':
+                console.log("Final chunk recieved")
+                setHistory(prev => {
+                  const newHistory = [...prev];
+                  if (newHistory[newHistory.length - 1]?.role === 'ai') {
+                    newHistory[newHistory.length - 1].content = data.response;
+                  } else {
+                    newHistory.push({ role: 'ai', content: data.response });
+                  }
+                  return newHistory;
+                });
+                setIsLoading(false);
+                break;
+            }
+          }
+        }          
+      }
       setMessage(''); // Clear the input after sending
     } catch (error) {
       console.error('Error sending message:', error);
+      setIsLoading(false);
     }
   };
 
@@ -140,7 +185,7 @@ function Chat({ token }) {
     }
   };
 
-  return (
+return (
 <div className="chat-container">
   <div className="chat-header">
     {currentSessionId && (
