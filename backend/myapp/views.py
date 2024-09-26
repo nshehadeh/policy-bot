@@ -108,9 +108,9 @@ class ChatView(APIView):
 
                 response = StreamingHttpResponse(stream_response(), content_type='text/event-stream')
                 response['Cache-Control'] = 'no-cache'
-                #response['Content-Encoding'] = '' 
+                response["X-Accel-Buffering"] = 'no'
+                #response['Connection'] = 'keep-alive'  # Add this
                 return response
-            
             
             except TypeError as e:
                 print(f"TypeError: {e}")

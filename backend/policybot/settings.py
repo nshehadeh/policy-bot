@@ -46,7 +46,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    # Possible fix to something: 'myapp.middleware.DisableGZipForEventStream',
+    'myapp.middleware.DisableGZipForEventStream',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

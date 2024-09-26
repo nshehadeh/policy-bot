@@ -68,6 +68,7 @@ function Chat({ token }) {
   
       console.log("Response received, starting to read stream...");      
       const reader = response.body.getReader();
+      const decoder = new TextDecoder();
       let LLMresponse = '';
       while(true){
 
@@ -77,9 +78,10 @@ function Chat({ token }) {
           break;
         }
 
-        const chunk = new TextDecoder().decode(value);
+        const chunk = decoder.decode(value, { stream: true });
+        console.log(chunk);
         const lines = chunk.split('\n\n');
-
+/*
         for(const line of lines) {
           if (line.startsWith('data: ')) {
             // remove data: prefix from the data
@@ -119,7 +121,7 @@ function Chat({ token }) {
                 break;
             }
           }
-        }          
+        }  */        
       }
       setMessage(''); // Clear the input after sending
     } catch (error) {
