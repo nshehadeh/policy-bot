@@ -234,6 +234,7 @@ class RAGSystem:
         self.llm = model.get_model()
         self.generator.llm = self.llm 
 
+    #TODO MAKE THIS ASYNC??? and others down the line
     def handle_query(self, question):
         # self.generator.memory.save_context({"input": question}, {"output": generated})
         for generated_chunk in self.generator.invoke(question):
@@ -242,8 +243,5 @@ class RAGSystem:
     
     # TODO can integrate with ChatMessageHistory eventualy instead of JSON objects,
     # would just have to adjust frontend, specifically with postgresql class
-    
-    # builds new chatmessagehistory based on message
-    # can customize this later
     def load_memory(self, chat_history: ChatMessageHistory):
         self.generator.update_chat_history(chat_history)

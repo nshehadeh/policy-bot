@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from './api';
 import './Chat.css';
 
@@ -11,6 +11,7 @@ function Chat({ token }) {
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const websocket = useRef(null);
 
   // Fetch chat sessions on component mount
   useEffect(() => {
@@ -26,6 +27,48 @@ function Chat({ token }) {
     };
     fetchChatSessions();
   }, [token]);
+
+  // Connect to websock if session is established
+  // Connect to WebSocket when a session is loaded
+  useEffect(() => {
+    if (currentSessionId) {
+      console.log(`Trying to open WebSocket connection to: ws://localhost:8000/ws/chat/${currentSessionId}/`);
+
+      // Close any existing connection
+
+      if (websocket.current) {
+        console.log('Closing existing WebSocket connection');
+        websocket.current.close();
+      }
+
+      // Open new WebSocket connection
+      console.log(`Opening WebSocket connection for session: ${currentSessionId}`);
+      websocket.current = new WebSocket(`ws://localhost:8000/ws/chat/${currentSessionId}/`);
+
+      websocket.current.onopen = () => {
+        console.log('WebSocket connection opened.');
+      };
+
+      websocket.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('Received WebSocket message:', data);
+        setHistory((prevHistory) => [...prevHistory, { role: 'ai', content: data.message }]);
+      };
+
+      websocket.current.onclose = () => {
+        console.log('WebSocket connection closed.');
+      };
+
+      websocket.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      // Cleanup WebSocket on component unmount or session change
+      return () => {
+        websocket.current.close();
+      };
+    }
+  }, [currentSessionId]);
   
   const handleLoadPreviousChat = async (sessionId) => {
     setCurrentSessionId(sessionId);
@@ -47,86 +90,13 @@ function Chat({ token }) {
     }
   };
   
-  // using fetch instead of axios because of streaming issues, can look into this later
-  const handleChat = async () => {
-    setIsLoading(true);
-    try {
-      console.log("Sending request...");
-  
-      // Switch to the Fetch API to handle streams
-      const response = await fetch('/api/chat/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: message,
-          session_id: currentSessionId,
-        })
-      });
-  
-      console.log("Response received, starting to read stream...");      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let LLMresponse = '';
-      while(true){
-
-        const {done,value} = await reader.read();
-        if(done){
-          console.log("Stream finished");
-          break;
-        }
-
-        const chunk = decoder.decode(value, { stream: true });
-        console.log(chunk);
-        const lines = chunk.split('\n\n');
-/*
-        for(const line of lines) {
-          if (line.startsWith('data: ')) {
-            // remove data: prefix from the data
-            const data = JSON.parse(line.slice(6));
-    
-            switch(data.type) {
-              case 'initial':
-                console.log("Initial package recieved");
-                setCurrentSessionId(data.session_id);
-                break;
-              case 'chunk':
-                console.log("Chunk recieved", data.chunk);
-                setHistory(prev => {
-                  const newHistory = [...prev];
-                  LLMresponse += data.chunk
-                  if (newHistory.length && newHistory[newHistory.length - 1]?.role === 'ai') {
-                    newHistory[newHistory.length - 1].content = LLMresponse;
-                  } else {
-                    newHistory.push({ role: 'ai', content: LLMresponse });
-                  }
-                  console.log(newHistory)
-                  return newHistory;
-                });
-                break;
-              case 'final':
-                console.log("Final chunk recieved")
-                setHistory(prev => {
-                  const newHistory = [...prev];
-                  if (newHistory[newHistory.length - 1]?.role === 'ai') {
-                    newHistory[newHistory.length - 1].content = data.response;
-                  } else {
-                    newHistory.push({ role: 'ai', content: data.response });
-                  }
-                  return newHistory;
-                });
-                setIsLoading(false);
-                break;
-            }
-          }
-        }  */        
-      }
-      setMessage(''); // Clear the input after sending
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setIsLoading(false);
+  const handleChat = () => {
+    if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
+      websocket.current.send(JSON.stringify({
+        message: message
+      }));
+      setHistory((prev) => [...prev, { role: 'human', content: message }]);
+      setMessage(''); // Clear the input
     }
   };
 

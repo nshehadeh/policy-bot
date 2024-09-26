@@ -42,11 +42,20 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'myapp'
+    'myapp',
+    'channels',
 ]
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 MIDDLEWARE = [
-    'myapp.middleware.DisableGZipForEventStream',
+    #'myapp.middleware.DisableGZipForEventStream',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -75,6 +84,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'policybot.wsgi.application'
+ASGI_APPLICATION = 'policybot.asgi.application'
 
 
 # Database
