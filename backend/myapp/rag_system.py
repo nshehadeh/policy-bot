@@ -13,6 +13,7 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from time import sleep
+import asyncio
 
 
 # Abstract base classes
@@ -182,7 +183,12 @@ class Generator:
             if 'answer' in chunk:
                 yield chunk['answer']
                 sleep(0.2)
-        
+    async def invoke_async(self, question):
+        async for chunk in self.conversational_rag_chain.astream({"input": question}):
+            if 'answer' in chunk:
+                yield chunk['answer']
+                await asyncio.sleep(0.2)       
+                 
     def update_chat_history(self, new_chat_history: ChatMessageHistory):
         self.chat_history = new_chat_history
         
@@ -235,9 +241,9 @@ class RAGSystem:
         self.generator.llm = self.llm 
 
     #TODO MAKE THIS ASYNC??? and others down the line
-    def handle_query(self, question):
+    async def handle_query(self, question):
         # self.generator.memory.save_context({"input": question}, {"output": generated})
-        for generated_chunk in self.generator.invoke(question):
+        async for generated_chunk in self.generator.invoke_async(question):
             yield generated_chunk  
 
     

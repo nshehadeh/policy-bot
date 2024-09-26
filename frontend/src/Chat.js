@@ -51,8 +51,20 @@ function Chat({ token }) {
 
       websocket.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log('Received WebSocket message:', data);
-        setHistory((prevHistory) => [...prevHistory, { role: 'ai', content: data.message }]);
+        console.log('Received WebSocket message:', data.chunk);
+        //setHistory((prevHistory) => [...prevHistory, { role: 'ai', content: data.chunk}]);
+        setHistory(prev => {
+          const newHistory = [...prev];
+          //LLMresponse += data.chunk
+          if (newHistory.length && newHistory[newHistory.length - 1]?.role === 'ai') {
+            newHistory[newHistory.length - 1].content += data.chunk;
+          } else {
+            newHistory.push({ role: 'ai', content: data.chunk });
+          }
+          // console.log(newHistory[newHistory.length-1])
+          return newHistory;
+        });
+      
       };
 
       websocket.current.onclose = () => {
@@ -91,11 +103,13 @@ function Chat({ token }) {
   };
   
   const handleChat = () => {
+    // push human message
+    setHistory((prev) => [...prev, { role: 'human', content: message}]);
+    // send on websocket
     if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
       websocket.current.send(JSON.stringify({
         message: message
       }));
-      setHistory((prev) => [...prev, { role: 'human', content: message }]);
       setMessage(''); // Clear the input
     }
   };
