@@ -10,7 +10,6 @@ function Chat({ token }) {
   const [showSettings, setShowSettings] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
   const websocket = useRef(null);
 
   // Fetch chat sessions on component mount
@@ -43,7 +42,7 @@ function Chat({ token }) {
 
       // Open new WebSocket connection
       console.log(`Opening WebSocket connection for session: ${currentSessionId}`);
-      websocket.current = new WebSocket(`ws://localhost:8000/ws/chat/${currentSessionId}/`);
+      websocket.current = new WebSocket(`ws://localhost:8000/ws/chat/${currentSessionId}/?token=${token}`);
 
       websocket.current.onopen = () => {
         console.log('WebSocket connection opened.');
@@ -116,28 +115,34 @@ function Chat({ token }) {
 
   const handleStartNewChat = async () => {
     try {
-
       let data = {}
       // Check if message is empty
       if(message.trim()) {
         data = {message};
       }
-      const res = await api.post(
-        '/chat/',
-        data,
-        {headers: { Authorization: `Token ${token}` },}
-      );
+      console.log("Token being used:", token);
+
+      const res = await api.post('/chat/new/', data, {
+        headers: { Authorization: `Token ${token}` },
+      });
+
       setHistory([]);
+      setCurrentSessionId(res.data.session_id);
+      // If starting chat with new message --> send in WS
       if(data.message){
-        setHistory([{ role: 'human', content: message }, { role: 'ai', content: res.data.response }]);
-         // Clear the input after sending
+        setHistory([{ role: 'human', content: message }]);
+         if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
+          websocket.current.send(JSON.stringify({
+            message: data.message
+          }));
+        }
         setMessage('');
       }
-      setCurrentSessionId(res.data.session_id);
+      // Reload sessions
       const sessionsRes = await api.get('/chat/sessions/', {  // Reload chat sessions
         headers: { Authorization: `Token ${token}` },
       });
-      setSessions(sessionsRes.data);  // Update the list of sessions
+      setSessions(sessionsRes.data);
     } catch (error) {
       console.error('Error starting new chat:', error);
     }

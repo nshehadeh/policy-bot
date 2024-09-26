@@ -62,7 +62,6 @@ class ChatMessageSerializer(serializers.Serializer):
 
     # Output fields
     response = serializers.CharField(read_only=True)
-    is_streaming = serializers.BooleanField(read_only=True, default=True)
 
     def validate(self, data):
         """

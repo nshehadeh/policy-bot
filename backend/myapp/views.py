@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
-from django.http import StreamingHttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -29,94 +28,19 @@ class UserCreate(generics.CreateAPIView):
 
 
 class ChatView(APIView):
-    """
-    View for handling chat interactions.
-
-    Handles incoming chat messages, creates or retrieves chat sessions, 
-    and processes user queries using the RAGSystem.
-
-    Attributes:
-        permission_classes (list): A list of permission classes, ensuring the user is authenticated.
-    """
-
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        """
-        Handles POST requests to process a chat message.
-
-        Validates the incoming chat message, creates or retrieves a chat session, 
-        processes the message using RAGSystem, and stores the conversation in the database.
-
-        Args:
-            request (HttpRequest): The HTTP request object containing the chat message data.
-
-        Returns:
-            Response: A Response object containing the processed message, AI response, and session ID.
-        """
         serializer = ChatMessageSerializer(data=request.data)
         
         if serializer.is_valid():
-            user_message = serializer.validated_data.get('message')
-            session_id = serializer.validated_data.get('session_id')
-            
-            if session_id:
-                chat_session = ChatSession.objects.get(session_id=session_id, user=request.user)
-            else:
-                chat_session = ChatSession.objects.create(user=request.user)
-                print("Creating new chat session, id: " + str(chat_session.session_id))
-            
-            if not user_message:
-                return Response({'session_id': str(chat_session.session_id), 'is_streaming': False}, status=status.HTTP_200_OK)
-
-            try:
-                rag_system = RAGSystem()
-                #TODO Can definitely change this to make it more efficient with the data it's passing in / handle initial data better
-                def stream_response():
-                    # INTIAL data
-                    initial_data = json.dumps({
-                        'session_id': str(chat_session.session_id),
-                        'is_streaming': True,
-                        'type': 'initial'
-                    })
-                    print(f"Sending initial data: {initial_data}\n")
-                    yield f"data: {initial_data}\n\n"
-
-                    full_response = ""
-                    for chunk in rag_system.handle_query(user_message):
-                        #print(f"Streaming chunk: {chunk}")  # Debug: print each chunk
-                        full_response += chunk
-                        chunk_data = json.dumps({
-                            'chunk': chunk,
-                            'type': 'chunk'
-                        })
-                        yield f"data: {chunk_data}\n\n"
-                        print(f"Chunk sent: {chunk}")
-                    
-                    # AFTER full response is generated
-                    ChatMessage.objects.create(session=chat_session, role='human', content=user_message)
-                    ChatMessage.objects.create(session=chat_session, role='ai', content=full_response)
-                    
-                    # FINAL data
-                    final_data = json.dumps({
-                        'type': 'final',
-                        'response': full_response,
-                        'is_streaming': False
-                    })
-                    print(final_data)
-                    yield f"data: {final_data}\n\n"
-
-                response = StreamingHttpResponse(stream_response(), content_type='text/event-stream')
-                response['Cache-Control'] = 'no-cache'
-                response["X-Accel-Buffering"] = 'no'
-                #response['Connection'] = 'keep-alive'  # Add this
-                return response
-            
-            except TypeError as e:
-                print(f"TypeError: {e}")
-                return Response({'error': 'An error occurred while processing your request.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            message = serializer.validated_data.get('message', "")
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        chat_session = ChatSession.objects.create(user=request.user)
+        session_id = chat_session.session_id
+        print("Creating new chat session, id: " + str(session_id) + "for: " + str(request.user))
+            
+        return Response({"session_id": session_id}, status=status.HTTP_200_OK)
 
 
 class LoadPreviousChatView(APIView):
