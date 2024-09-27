@@ -12,6 +12,8 @@ function Chat({ token }) {
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const websocket = useRef(null);
   const aiMessageRef = useRef('');
+  const [loading, setLoading] = useState(false);  // New loading state
+
 
 
   // Fetch chat sessions on component mount
@@ -52,12 +54,14 @@ function Chat({ token }) {
 
       websocket.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        if (data.status == 'complete') return;
         aiMessageRef.current += ` ${data.chunk}`;
+        console.log(data.chunk)
 
         setHistory(prev => {
           const newHistory = [...prev];
           if (newHistory.length && newHistory[newHistory.length - 1]?.role === 'ai') {
-            newHistory[newHistory.length - 1].content = aiMessageRef.current.trim();
+            newHistory[newHistory.length - 1].content = aiMessageRef.current;
           } else {
             newHistory.push({ role: 'ai', content: data.chunk });
           }
@@ -104,6 +108,7 @@ function Chat({ token }) {
   
   const handleChat = () => {
     // push human message
+    aiMessageRef.current = ''
     setHistory((prev) => [...prev, { role: 'human', content: message}]);
     // send on websocket
     if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {

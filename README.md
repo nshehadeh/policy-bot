@@ -2,14 +2,18 @@
 ### Political LLM App 
 
 To run:
-- Start React server in in frontend/ with yarn start, if issues run: rm -rf node_modules --> yarn install --> yarn start
-- Start Django server in backend/ with python manage.py makemigrations --> python manage.py migrate --> python manage.py runserver
+- Start React server in  frontend/ with yarn start, if issues run: rm -rf node_modules --> yarn install --> yarn start
+- Start Daphne server in backend/ with daphne -b 0.0.0.0 -p 8000 policybot.asgi:application
+- Start redis with redis-server
+
+- To use Django admin: start Django server in backend/ with python manage.py makemigrations --> python manage.py migrate --> python manage.py runserver
 - App will run on localhost:3000, Django admin: http://127.0.0.1:8000/admin/
-- Uses postgresql for Django ORM hosted locally, change all variables in env for databases and API keys
 
 Currently working on:
-- Streamed Responses
-- Testing RAG-Fusion
+- Testing RAG-Fusion & overall improvements to RAG
+- Deleting chats functionality
+- Not being able to start a new chat until previous stream is done
+- Langchain adding spaces to some tokens
 
 Current look:
 
@@ -24,14 +28,6 @@ Current look:
 | **LangChain & ChatGPT**  | Query Processing, Response Generation          |
 | **MongoDB**              | Document Storage, User Data, Conversation History|
 | **React Frontend**       | UI Components, State Management, Chat UI       |
-
-
-### Future
-
-| Component                | Description                                    |
-|--------------------------|------------------------------------------------|
-| **Deployment & Hosting** | AWS, Docker, Kubernetes                        |
-| **CI/CD Pipeline**       | GitHub Actions, Jenkins                        |
 
 
 
