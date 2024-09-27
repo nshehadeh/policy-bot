@@ -187,7 +187,7 @@ class Generator:
         async for chunk in self.conversational_rag_chain.astream({"input": question}):
             if 'answer' in chunk:
                 yield chunk['answer']
-                await asyncio.sleep(0.2)       
+                await asyncio.sleep(0.1)       
                  
     def update_chat_history(self, new_chat_history: ChatMessageHistory):
         self.chat_history = new_chat_history

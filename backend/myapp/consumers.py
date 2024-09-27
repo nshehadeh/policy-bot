@@ -30,14 +30,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         chat_session = await sync_to_async(ChatSession.objects.get)(session_id=self.session_id, user=self.user)
         rag_system = RAGSystem()
         
-        # Initial message --> prob not necessary anymore
-        await self.send(json.dumps({
-            'type': 'initial',
-            'session_id': str(chat_session.session_id),
-            'is_streaming': True,
-        }))
-        
-        print("Sending stream")
         full_response = ""
         async for chunk in rag_system.handle_query(query):
             full_response += chunk
@@ -45,14 +37,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'type': 'chunk',
                 'chunk': chunk,
             }))
-        print(f"Finished streaming the response")
 
         # Final message
         await self.send(text_data=json.dumps({
             'status': 'complete',
             'message': 'Streaming finished'
         }))
-        print("Final message sent, now saving chats")
         # After sending the full response via WebSocket
         await sync_to_async(ChatMessage.objects.create)(session=chat_session, role='human', content=query)
         await sync_to_async(ChatMessage.objects.create)(session=chat_session, role='ai', content=full_response)

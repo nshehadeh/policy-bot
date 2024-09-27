@@ -11,6 +11,8 @@ function Chat({ token }) {
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const websocket = useRef(null);
+  const aiMessageRef = useRef('');
+
 
   // Fetch chat sessions on component mount
   useEffect(() => {
@@ -50,17 +52,16 @@ function Chat({ token }) {
 
       websocket.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log('Received WebSocket message:', data.chunk);
-        //setHistory((prevHistory) => [...prevHistory, { role: 'ai', content: data.chunk}]);
+        aiMessageRef.current += ` ${data.chunk}`;
+
         setHistory(prev => {
           const newHistory = [...prev];
-          //LLMresponse += data.chunk
           if (newHistory.length && newHistory[newHistory.length - 1]?.role === 'ai') {
-            newHistory[newHistory.length - 1].content += data.chunk;
+            newHistory[newHistory.length - 1].content = aiMessageRef.current.trim();
           } else {
             newHistory.push({ role: 'ai', content: data.chunk });
           }
-          // console.log(newHistory[newHistory.length-1])
+          // console.log('Updated history:', newHistory);
           return newHistory;
         });
       
