@@ -16,6 +16,7 @@ from time import sleep
 import asyncio
 
 
+
 # Abstract base classes
 class BaseModel: 
     def get_model(self):
@@ -80,7 +81,7 @@ class QAPromptTemplate(BasePromptTemplate):
             "Use the following pieces of retrieved context to answer "
             "the question. If you don't know the answer, say that you "
             "don't know. Use three sentences maximum and keep the "
-            "answer concise. Give a one line summary of the context metadata used at the end of your answer"
+            "answer concise. If the context was particularily relevant, give a summary of the context metadata used at the end"
             "\n\n"
             "{context}"
         )
@@ -235,6 +236,9 @@ class RAGSystem:
     def _load_environment_variables(self):
         os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
         os.environ["PINECONE_API_KEY"] = os.getenv('PINECONE_API_KEY')
+        os.environ["LANGSMITH_API_KEY"] = os.getenv('LANGSMITH_API_KEY')
+        os.environ['LANGCHAIN_TRACING_V2'] = 'true'
+        os.environ['LANGCHAIN_ENDPOINT'] = 'https://api.smith.langchain.com'
 
     def update_llm(self, model: BaseModel):
         self.llm = model.get_model()
