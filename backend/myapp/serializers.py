@@ -71,15 +71,12 @@ class ChatMessageSerializer(serializers.Serializer):
             raise serializers.ValidationError("Either 'message' or 'session_id' must be provided.")
         return data
 
-class LoadPreviousChatSerializer(serializers.ModelSerializer):
-    """
-    Serializer for loading previous chat sessions.
-
-    Meta:
-        model (Model): The ChatSession model that this serializer maps to.
-        fields (list): The fields to include in the serialization, limited to session ID and creation time.
-    """
-
+class ChatSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSession
-        fields = ['session_id', 'created_at']  # Only expose session ID and creation time
+        fields = ['session_id', 'created_at', 'name']
+
+class ChatSessionUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSession
+        fields = ['name']

@@ -169,3 +169,99 @@ h1 {
 .chat-input button:hover {
   background-color: #1565c0;
 }
+/* Add these to your existing Chat.css file */
+
+.session-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f0f0f0;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.session-item:hover,
+.session-item.active {
+  background-color: #d6e4ff;
+}
+
+.session-button {
+  flex-grow: 1;
+  background: none;
+  border: none;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-actions {
+  display: flex;
+  gap: 5px;
+  padding-right: 8px;
+}
+
+.action-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 1rem;
+  color: #555;
+  transition: background-color 0.2s ease;
+}
+
+.action-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.action-button.delete {
+  color: #e53935;
+}
+
+.action-button.delete:hover {
+  background-color: rgba(229, 57, 53, 0.1);
+}
+
+.rename-form {
+  padding: 8px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.rename-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.rename-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.action-button.save {
+  background-color: #1e88e5;
+  color: white;
+}
+
+.action-button.save:hover {
+  background-color: #1565c0;
+}
+
+.action-button.cancel {
+  background-color: #f0f0f0;
+}
+
+.action-button.cancel:hover {
+  background-color: #e0e0e0;
+}

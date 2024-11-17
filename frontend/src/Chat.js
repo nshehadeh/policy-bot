@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ChatSessionItem from './ChatSessionItem';
 import api from './api';
 import './Chat.css';
 
@@ -181,7 +182,37 @@ function Chat({ token }) {
       console.error('Error fetching user data:', error);
     }
   };
-
+  const handleDeleteChat = async (sessionId) => {
+    try {
+      await api.delete(`/chat/sessions/${sessionId}/`, {
+        headers: { Authorization: `Token ${token}` },
+      });
+      setSessions(sessions.filter(session => session.session_id !== sessionId));
+      if (sessionId === currentSessionId) {
+        setCurrentSessionId(null);
+        setHistory([]);
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+    }
+  };
+  
+  const handleRenameChat = async (sessionId, newName) => {
+    try {
+      await api.patch(`/chat/sessions/${sessionId}/`, 
+        { name: newName },
+        { headers: { Authorization: `Token ${token}` },
+      });
+      setSessions(sessions.map(session => 
+        session.session_id === sessionId 
+          ? { ...session, name: newName }
+          : session
+      ));
+    } catch (error) {
+      console.error('Error renaming chat:', error);
+    }
+  };
+  
 return (
 <div className="chat-container">
   <div className="chat-header">
@@ -219,13 +250,14 @@ return (
       <h3>Previous Chats</h3>
       <div className="sessions-list">
         {sessions.map((session) => (
-          <button
+          <ChatSessionItem
             key={session.session_id}
-            onClick={() => handleLoadPreviousChat(session.session_id)}
-            className={session.session_id === currentSessionId ? 'active' : ''}
-          >
-            {new Date(session.created_at).toLocaleString()}
-          </button>
+            session={session}
+            isActive={session.session_id === currentSessionId}
+            onSelect={handleLoadPreviousChat}
+            onDelete={handleDeleteChat}
+            onRename={handleRenameChat}
+          />
         ))}
       </div>
     </div>

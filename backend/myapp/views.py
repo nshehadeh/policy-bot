@@ -3,13 +3,14 @@ from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import ChatMessageSerializer, LoadPreviousChatSerializer, UserSerializer, UpdateSettingsSerializer
+from .serializers import ChatMessageSerializer, ChatSessionSerializer, ChatSessionUpdateSerializer, UserSerializer, UpdateSettingsSerializer
 from .rag_system import RAGSystem
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
 from .models import ChatSession, ChatMessage
 from django.contrib.auth.models import User
 from langchain.memory import ChatMessageHistory
+from django.shortcuts import get_object_or_404
 import json
 
 
@@ -42,7 +43,28 @@ class ChatView(APIView):
             
         return Response({"session_id": session_id}, status=status.HTTP_200_OK)
 
+class ChatSessionView(APIView):
+    
+    permission_classes = [IsAuthenticated]
+    
+    # Update chat name
+    def patch(self, request, session_id, *args, **kwargs):
+        
+        session = get_object_or_404(ChatSession, session_id=session_id, user=request.user)
+        serializer = ChatSessionUpdateSerializer(session, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, session_id, *args, **kwargs):
+        """Delete chat session"""
+        session = get_object_or_404(ChatSession, session_id=session_id, user=request.user)
+        session.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
+    
 class LoadPreviousChatView(APIView):
     """
     View for loading previous chat sessions.
@@ -68,7 +90,7 @@ class LoadPreviousChatView(APIView):
             Response: A Response object containing serialized chat session data.
         """
         chat_sessions = ChatSession.objects.filter(user=request.user).order_by('-created_at')
-        serializer = LoadPreviousChatSerializer(chat_sessions, many=True)
+        serializer = ChatSessionSerializer(chat_sessions, many=True)
         return Response(serializer.data)
     
     def post(self, request, *args, **kwargs):
