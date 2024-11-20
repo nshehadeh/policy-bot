@@ -11,6 +11,7 @@ To run:
 
 Currently working on:
 - Adding structure to LLM response to change frontend for citations of metadata
+
 Future issues:
 - Testing RAG-Fusion & overall improvements to RAG
 - Not being able to start a new chat until previous stream is done
