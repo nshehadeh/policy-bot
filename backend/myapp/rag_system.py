@@ -60,9 +60,6 @@ class PineconeVectorStoreModel(BaseVectorStore):
         Checks if the embedding model is compatible with the Pinecone vector store.
         Raises an exception if the embedding size does not match the vector store's configuration.
         
-        # embedding_dim = something
-        # vector_dim = something 
-        
         if embedding_dim != vector_dim:
             raise ValueError(
                 f"The embedding size ({embedding_dim}) does not match the Pinecone vector store's dimensionality ({vector_dim}). "
@@ -81,7 +78,7 @@ class QAPromptTemplate(BasePromptTemplate):
             "Use the following pieces of retrieved context to answer "
             "the question. If you don't know the answer, say that you "
             "don't know. Use three sentences maximum and keep the "
-            "answer concise. If the context was particularily relevant, give a summary of the context metadata used at the end"
+            "answer concise. Give a summary of metadata used for any retrieved context."
             "\n\n"
             "{context}"
         )
@@ -225,7 +222,7 @@ class RAGSystem:
             # TODO make and improve retriever class by making context aware, getting full documents from mongodb, etc
             self.retriever = self.vector_store.as_retriever(
                 search_type="similarity",
-                search_kwargs={'k': 3}
+                search_kwargs={'k': 6}
             )
             self.qa_prompt = (prompt_template or QAPromptTemplate()).get_prompt_template()
             self.context_prompt = ContextPromptTemplate().get_prompt_template()
