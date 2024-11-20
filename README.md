@@ -11,9 +11,9 @@ To run:
 
 Currently working on:
 - Testing RAG-Fusion & overall improvements to RAG
-- Deleting chats functionality
 - Not being able to start a new chat until previous stream is done
 - Langchain adding spaces to some tokens
+- When you start a new chat, doesn't request response without double texting
 
 Current look:
 
