@@ -10,6 +10,8 @@ To run:
 - App will run on localhost:3000, Django admin: http://127.0.0.1:8000/admin/
 
 Currently working on:
+- Adding structure to LLM response to change frontend for citations of metadata
+Future issues:
 - Testing RAG-Fusion & overall improvements to RAG
 - Not being able to start a new chat until previous stream is done
 - Langchain adding spaces to some tokens
