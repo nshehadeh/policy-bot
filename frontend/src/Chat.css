@@ -1,267 +1,337 @@
-
-h1 {
-  margin: 10;
-  text-align: center;
-  font-size: 2rem;
-  color: #555;
-}
-
-/* Container Styling */
-.chat-container {
+/* Base Layout */
+.app-container {
   display: flex;
   flex-direction: column;
-  height: 80vh;
-  padding: 15px;
-  background-color: #f7f9fc;
-  font-family: 'Roboto', sans-serif;
+  height: 100vh;
+  background-color: #f0f4f8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Header Styling */
-.chat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Header */
+.app-header {
+  background-color: #1a365d;
+  padding: 12px 24px;
+  color: white;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Top Bar */
+.top-bar {
   background-color: #ffffff;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 8px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
 }
 
-/* Settings and New Chat Buttons Styling */
-.button-standard {
+.settings-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
   padding: 10px 20px;
-  background-color: #1e88e5;
+  background-color: #4299e1;
   color: white;
   border: none;
   border-radius: 8px;
+  font-size: 14px;
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.settings-button:hover {
+  background-color: #3182ce;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Main Content */
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Chat Section */
+.chat-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  height: calc(100vh - 56px);
+}
+
+.chat-header {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #ffffff;
+}
+
+.button-standard {
+  padding: 6px 12px;
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .button-standard:hover {
-  background-color: #1565c0;
+  background-color: #3182ce;
 }
 
-/* Settings Panel Styling */
-.settings-panel {
-  margin-top: 10px;
-  padding: 15px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  background-color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* Chat Content Styling */
-.chat-content {
-  display: flex;
-  flex: 1;
-  margin-top: 15px;
-  overflow: hidden; /* Ensure content is contained within the viewport */
-}
-
-/* Sidebar Styling */
-.chat-sidebar {
-  width: 25%;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid #e0e0e0;
-  padding-right: 15px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  overflow-y: auto;
-}
-
-.chat-sidebar h3 {
-  font-size: 1.2rem;
-  color: #555;
-  margin-bottom: 15px;
-}
-
-.sessions-list {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1; /* Allow the list to take up remaining space */
-  overflow-y: auto; /* Make the list scrollable */
-}
-
-.sessions-list button {
-  background-color: #f0f0f0;
-  border: none;
-  padding: 12px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  text-align: left;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
-}
-
-.sessions-list button.active,
-.sessions-list button:hover {
-  background-color: #d6e4ff;
-}
-
-/* Main Chat Area Styling */
-.chat-main {
-  width: 75%;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-history {
+/* Chat Messages */
+.chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  background-color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  margin-bottom: 15px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: #f8fafc;
 }
 
-/* Chat Message Styling */
-.chat-message {
-  padding: 10px 15px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  max-width: 100%;
-  word-wrap: break-word;
+.message {
+  max-width: 75%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  line-height: 1.5;
+  font-size: 14px;
 }
 
-.chat-message.human {
-  background-color: #a5d6a7; /* Soft green for human messages */
-  align-self: flex-start;
-}
-
-.chat-message.ai {
-  background-color: #90caf9; /* Soft blue for AI messages */
+.message.human {
   align-self: flex-end;
+  background-color: #4299e1;
+  color: white;
+  margin-left: 25%;
+  box-shadow: 0 2px 4px rgba(66, 153, 225, 0.2);
 }
 
-/* Input Area Styling */
+.message.assistant {
+  align-self: flex-start;
+  background-color: #e2e8f0;
+  color: #2d3748;
+  margin-right: 25%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Chat Input */
 .chat-input {
+  padding: 12px 16px;
+  background-color: white;
+  border-top: 1px solid #e2e8f0;
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  align-items: center;
 }
 
 .chat-input input {
   flex: 1;
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 10px 14px;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
 }
 
-.chat-input button {
-  padding: 12px 20px;
-  background-color: #1e88e5;
+.chat-input input:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
+.send-button {
+  padding: 10px 20px;
+  background-color: #4299e1;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
+  font-size: 14px;
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s ease;
 }
 
-.chat-input button:hover {
-  background-color: #1565c0;
+.send-button:hover {
+  background-color: #3182ce;
 }
-/* Add these to your existing Chat.css file */
+
+.send-button:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+/* Settings Panel */
+.settings-panel {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 100;
+  min-width: 280px;
+}
+
+.settings-input {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
+/* Chat History Modal */
+.chat-history-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.chat-history-content {
+  background: white;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+}
+
+.chat-history-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: #1a365d;
+  font-weight: 600;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+/* Session Items */
+.sessions-list {
+  padding: 12px;
+  overflow-y: auto;
+  max-height: calc(80vh - 64px);
+}
 
 .session-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background-color: #f0f0f0;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  transition: background-color 0.3s ease;
+  padding: 10px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  background-color: #f8fafc;
+  transition: all 0.2s ease;
 }
 
-.session-item:hover,
+.session-item:hover {
+  background-color: #f1f5f9;
+}
+
 .session-item.active {
-  background-color: #d6e4ff;
+  background-color: #e0f2fe;
 }
 
-.session-button {
-  flex-grow: 1;
-  background: none;
-  border: none;
-  padding: 12px;
-  text-align: left;
-  cursor: pointer;
-  font-size: 1rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.session-info {
+  flex: 1;
+  margin-right: 12px;
+}
+
+.session-name {
+  font-weight: 500;
+  color: #1e293b;
 }
 
 .session-actions {
   display: flex;
-  gap: 5px;
-  padding-right: 8px;
+  gap: 6px;
 }
 
 .action-button {
-  background: none;
+  padding: 6px 10px;
   border: none;
-  cursor: pointer;
-  padding: 4px 8px;
   border-radius: 4px;
-  font-size: 1rem;
-  color: #555;
-  transition: background-color 0.2s ease;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
 }
 
-.action-button:hover {
-  background-color: rgba(0, 0, 0, 0.1);
+.action-button.edit {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+.action-button.edit:hover {
+  background-color: #bae6fd;
 }
 
 .action-button.delete {
-  color: #e53935;
+  background-color: #fee2e2;
+  color: #dc2626;
 }
 
 .action-button.delete:hover {
-  background-color: rgba(229, 57, 53, 0.1);
+  background-color: #fecaca;
 }
 
-.rename-form {
-  padding: 8px;
-  background-color: #f0f0f0;
-  border-radius: 8px;
-  margin-bottom: 10px;
-}
-
-.rename-input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 8px;
-}
-
-.rename-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.action-button.save {
-  background-color: #1e88e5;
-  color: white;
-}
-
-.action-button.save:hover {
-  background-color: #1565c0;
-}
-
-.action-button.cancel {
-  background-color: #f0f0f0;
-}
-
-.action-button.cancel:hover {
-  background-color: #e0e0e0;
+/* Search Section */
+.search-section {
+  flex: 1;
+  background-color: #ffffff;
+  overflow: hidden;
 }

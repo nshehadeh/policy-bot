@@ -4,8 +4,6 @@ from .rag_system import RAGSystem
 from asgiref.sync import sync_to_async
 import asyncio
 
-
-
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         # Ensure the user is authenticated
@@ -31,7 +29,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         rag_system = RAGSystem()
         
         full_response = ""
-        async for chunk in rag_system.handle_query(query):
+        async for chunk in rag_system.handle_chat_query(query):
             full_response += chunk
             await self.send(json.dumps({
                 'type': 'chunk',
@@ -46,47 +44,3 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # After sending the full response via WebSocket
         await sync_to_async(ChatMessage.objects.create)(session=chat_session, role='human', content=query)
         await sync_to_async(ChatMessage.objects.create)(session=chat_session, role='ai', content=full_response)
-    """
-    
-    
-
-    async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json['message']
-        session_id = text_data_json.get('session_id')
-        from .models import ChatSession, ChatMessage
-
-
-        user = self.scope["user"]
-        
-        if session_id:
-            chat_session = await sync_to_async(ChatSession.objects.get)(session_id=session_id, user=user)
-        else:
-            chat_session = await sync_to_async(ChatSession.objects.create)(user=user)
-
-        rag_system = RAGSystem()
-        
-        await self.send(json.dumps({
-            'type': 'initial',
-            'session_id': str(chat_session.session_id),
-            'is_streaming': True,
-        }))
-
-
-        full_response = ""
-        for chunk in rag_system.handle_query(message):
-            full_response += chunk
-            await self.send(json.dumps({
-                'type': 'chunk',
-                'chunk': chunk,
-            }))
-
-        await sync_to_async(ChatMessage.objects.create)(session=chat_session, role='human', content=message)
-        await sync_to_async(ChatMessage.objects.create)(session=chat_session, role='ai', content=full_response)
-
-        await self.send(json.dumps({
-            'type': 'final',
-            'response': full_response,
-            'is_streaming': False,
-        }))
-        """

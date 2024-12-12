@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ChatSessionItem from './ChatSessionItem';
+import DocumentSearch from './DocumentSearch';
 import api from './api';
 import './Chat.css';
 
@@ -11,11 +12,18 @@ function Chat({ token }) {
   const [showSettings, setShowSettings] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [showChatHistory, setShowChatHistory] = useState(false);
   const websocket = useRef(null);
   const aiMessageRef = useRef('');
-  const [loading, setLoading] = useState(false);  // New loading state
+  const messagesEndRef = useRef(null);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [history]);
 
   // Fetch chat sessions on component mount
   useEffect(() => {
@@ -40,7 +48,7 @@ function Chat({ token }) {
 
       // Close any existing connection
 
-      if (websocket.current) {
+      if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
         console.log('Closing existing WebSocket connection');
         websocket.current.close();
       }
@@ -55,7 +63,7 @@ function Chat({ token }) {
 
       websocket.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.status == 'complete') return;
+        if (data.status === 'complete') return;
         aiMessageRef.current += ` ${data.chunk}`;
         console.log(data.chunk)
 
@@ -85,7 +93,7 @@ function Chat({ token }) {
         websocket.current.close();
       };
     }
-  }, [currentSessionId]);
+  }, [currentSessionId, token]);
   
   const handleLoadPreviousChat = async (sessionId) => {
     setCurrentSessionId(sessionId);
@@ -213,83 +221,109 @@ function Chat({ token }) {
     }
   };
   
-return (
-<div className="chat-container">
-  <div className="chat-header">
-    {currentSessionId && (
-      <button onClick={handleStartNewChat} className="button-standard">
-        Start New Chat
-      </button>
-    )}
-    <button onClick={() => { setShowSettings(!showSettings); if (!showSettings) handleFetchUserData(); }} className="button-standard">
-      Settings
-    </button>
-  </div>
-
-  {showSettings && (
-    <div className="settings-panel">
-      <input
-        type="text"
-        placeholder="First Name"
-        value={firstName}
-        onChange={(e) => setFirstName(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="Last Name"
-        value={lastName}
-        onChange={(e) => setLastName(e.target.value)}
-      />
-      <button onClick={handleNameChange} className="button-standard">Update Name</button>
-    </div>
-  )}
-
-  <div className="chat-content">
-    <div className="chat-sidebar">
-     
-      <h3>Previous Chats</h3>
-      <div className="sessions-list">
-        {sessions.map((session) => (
-          <ChatSessionItem
-            key={session.session_id}
-            session={session}
-            isActive={session.session_id === currentSessionId}
-            onSelect={handleLoadPreviousChat}
-            onDelete={handleDeleteChat}
-            onRename={handleRenameChat}
-          />
-        ))}
-      </div>
-    </div>
-
-    <div className="chat-main">
-      <div className="chat-history">
-        {Array.isArray(history) && history.map((chat, index) => (
-          <div key={index} className={`chat-message ${chat.role}`}>
-            <p>{chat.content}</p>
+  return (
+    <div className="app-container">
+      <header className="app-header">
+        <h1>PolicyAI</h1>
+      </header>
+      <div className="main-content">
+        <div className="chat-section">
+          <div className="chat-header">
+            <button className="button-standard" onClick={() => setShowChatHistory(true)}>
+              Chat History
+            </button>
+            <button className="button-standard" onClick={handleStartNewChat}>
+              New Chat
+            </button>
           </div>
-        ))}
-      </div>
 
-      <div className="chat-input">
-        <input
-          type="text"
-          placeholder="Type your message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-        />
-        {currentSessionId ? (
-          <button onClick={handleChat} className="button-standard">Send</button>
-        ) : (
-          <button onClick={handleStartNewChat} className="button-standard">Start New Chat</button>
-        )}
+          {showChatHistory && (
+            <div className="chat-history-modal">
+              <div className="chat-history-content">
+                <div className="chat-history-header">
+                  <h2>Chat History</h2>
+                  <button 
+                    className="close-button"
+                    onClick={() => setShowChatHistory(false)}
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="sessions-list">
+                  {sessions.map((session) => (
+                    <ChatSessionItem
+                      key={session.session_id}
+                      session={session}
+                      isActive={session.session_id === currentSessionId}
+                      onSelect={() => {
+                        handleLoadPreviousChat(session.session_id);
+                        setShowChatHistory(false);
+                      }}
+                      onRename={(newName) => handleRenameChat(session.session_id, newName)}
+                      onDelete={() => handleDeleteChat(session.session_id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="chat-messages" ref={messagesEndRef}>
+            {history.map((msg, index) => (
+              <div key={index} className={`message ${msg.role}`}>
+                <div className="message-content">{msg.content}</div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="chat-input">
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleChat()}
+              placeholder="Type your message..."
+            />
+            <button 
+              onClick={handleChat} 
+              disabled={!message.trim() || !currentSessionId}
+              className="send-button"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+        
+        <div className="search-section">
+          <DocumentSearch token={token} />
+        </div>
       </div>
+      <button className="settings-button" onClick={() => setShowSettings(!showSettings)}>
+        Settings
+      </button>
+      {showSettings && (
+        <div className="settings-panel">
+          <input
+            type="text"
+            placeholder="First Name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="settings-input"
+          />
+          <input
+            type="text"
+            placeholder="Last Name"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="settings-input"
+          />
+          <button onClick={handleNameChange} className="button-standard">
+            Save Settings
+          </button>
+        </div>
+      )}
     </div>
-  </div>
-</div>
-
-
-
   );
 }
 

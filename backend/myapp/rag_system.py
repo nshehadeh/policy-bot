@@ -1,11 +1,12 @@
 import os
+from re import search
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from dotenv import load_dotenv
 from langchain_pinecone import PineconeVectorStore
 from pprint import pprint
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 from threading import Lock
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
@@ -14,6 +15,8 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from time import sleep
 import asyncio
+from typing import Optional
+from langchain.retrievers.multi_query import MultiQueryRetriever
 
 
 
@@ -51,22 +54,14 @@ class OpenAIEmbeddingsModel(BaseEmbeddings):
 
 class PineconeVectorStoreModel(BaseVectorStore):
     def __init__(self, index_name, embeddings):
-        super().__init__(embeddings)
         self.index_name = index_name
         self.embeddings = embeddings
-
-    def _validate_embedding_compatibility(self, embeddings):
-        """
-        Checks if the embedding model is compatible with the Pinecone vector store.
-        Raises an exception if the embedding size does not match the vector store's configuration.
-        
-        if embedding_dim != vector_dim:
-            raise ValueError(
-                f"The embedding size ({embedding_dim}) does not match the Pinecone vector store's dimensionality ({vector_dim}). "
-                "The embedding model and vector store must be compatible."
-            )
-        """
-        pass
+        self._validate_embedding_compatibility(embeddings)
+        super().__init__(embeddings)
+    
+    # Usless for now
+    def _validate_embedding_compatibility(self, embedding):
+        return embedding.model == self.embeddings.model
 
     def get_vector_store(self):
         return PineconeVectorStore(index_name=self.index_name, embedding=self.embeddings)
@@ -111,6 +106,23 @@ class ContextPromptTemplate(BasePromptTemplate):
         )
         return contextualize_q_prompt    
 
+class QuerySearchPromptTemplate(BasePromptTemplate):
+    def get_prompt_template(self):
+        template = """You are an expert at expanding search queries to find relevant policy documents. 
+            Given a simple query, expand it into a detailed search query that would help find relevant policy documents.
+            Focus on including:
+            - Related policy areas
+            - Relevant stakeholders
+            - Key terminology
+            - Common policy frameworks
+            - Related regulations or guidelines
+
+            Query: {query}
+
+            Expanded search query (be concise but comprehensive):"""
+        
+        return PromptTemplate.from_template(template)
+
 # Generator class
 class Generator:
     def __init__(self, llm, retriever, qa_prompt_template, context_q_prompt_template, chat_history: ChatMessageHistory):
@@ -122,18 +134,6 @@ class Generator:
         
         self.question_answer_chain = create_stuff_documents_chain(self.llm, self.qa_prompt)
         self.history_aware_retriever = create_history_aware_retriever(llm, retriever, self.context_q_prompt)
-
-        """
-        self.rag_fusion_prompt = self._init_rag_fusion_prompt()
-        self.generate_queries = (
-            self.rag_fusion_prompt 
-            | ChatOpenAI(temperature=0)
-            | StrOutputParser() 
-            | (lambda x: x.split("\n"))
-        )
-        
-        self.retrieval_chain_rag_fusion = self.generate_queries | retriever.map() | self._reciprocal_rank_fusion
-        """
         self.rag_chain = create_retrieval_chain(self.history_aware_retriever, self.question_answer_chain)
         
         self.conversational_rag_chain = RunnableWithMessageHistory(
@@ -144,43 +144,12 @@ class Generator:
             output_messages_key="answer", 
         )
         
-    """
-    RAGFusionNOT in use right now (delete those \ when deleting comment)
-
-    def _init_rag_fusion_prompt(self):
-        template = \"""You are a helpful assistant that generates multiple search queries based on a single input query. \n
-                      Generate multiple search queries related to: {question} \n
-                      Output (4 queries):\"""
-        return ChatPromptTemplate.from_template(template)
-    
-    def _reciprocal_rank_fusion(self, results: list[list], k=60):
-        # Reciprocal rank fusion for re-ranking documents
-        fused_scores = {}
-        for docs in results:
-            for rank, doc in enumerate(docs):
-                doc_str = dumps(doc)
-                if doc_str not in fused_scores:
-                    fused_scores[doc_str] = 0
-                fused_scores[doc_str] += 1 / (rank + k)
-        
-        reranked_results = [
-            (loads(doc), score)
-            for doc, score in sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)
-        ]
-        return reranked_results
-    """
     def invoke(self, question):
-        # Use RAG-Fusion retrieval chain for getting documents
-        """
-        docs = self.retrieval_chain_rag_fusion.invoke({"question": question})
-        return self.conversational_rag_chain.invoke(
-            {"input": question, "context": docs},
-        )["answer"]
-        """
         for chunk in self.conversational_rag_chain.stream({"input": question}):
             if 'answer' in chunk:
                 yield chunk['answer']
                 sleep(0.2)
+   
     async def invoke_async(self, question):
         async for chunk in self.conversational_rag_chain.astream({"input": question}):
             if 'answer' in chunk:
@@ -207,18 +176,18 @@ class RAGSystem:
         return cls._instance
 
     def __init__(self, 
-                 model: BaseModel = None, 
-                 embeddings: BaseEmbeddings = None, 
-                 vector_store: BaseVectorStore = None, 
-                 prompt_template: BasePromptTemplate = None,
+                 model: Optional[BaseModel] = None, 
+                 embeddings: Optional[BaseEmbeddings] = None, 
+                 vector_store: Optional[BaseVectorStore] = None, 
+                 prompt_template: Optional[BasePromptTemplate] = None,
                  chat_history: ChatMessageHistory = ChatMessageHistory()):
-        if not hasattr(self, '_initialized'):  # Ensures __init__ is run only once
+        if not hasattr(self, '_initialized'):  # Singleton
             load_dotenv()
             self._load_environment_variables()
 
             self.llm = (model or OpenAIModel()).get_model()
             self.embeddings = (embeddings or OpenAIEmbeddingsModel()).get_embeddings()
-            self.vector_store = (vector_store or PineconeVectorStoreModel(index_name="langchain-index", embeddings=self.embeddings)).get_vector_store()
+            self.vector_store = (vector_store or PineconeVectorStoreModel(index_name="federal-register", embeddings=self.embeddings)).get_vector_store()
             # TODO make and improve retriever class by making context aware, getting full documents from mongodb, etc
             self.retriever = self.vector_store.as_retriever(
                 search_type="similarity",
@@ -226,29 +195,48 @@ class RAGSystem:
             )
             self.qa_prompt = (prompt_template or QAPromptTemplate()).get_prompt_template()
             self.context_prompt = ContextPromptTemplate().get_prompt_template()
-            self.generator = Generator(self.llm, self.retriever,  self.qa_prompt, self.context_prompt, chat_history)
+            self.query_search_prompt = QuerySearchPromptTemplate().get_prompt_template()
+            self.generator = Generator(self.llm, self.retriever, self.qa_prompt, self.context_prompt, chat_history)
+                        
             self._initialized = True
             self.msg = ""
 
     def _load_environment_variables(self):
-        os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
-        os.environ["PINECONE_API_KEY"] = os.getenv('PINECONE_API_KEY')
-        os.environ["LANGSMITH_API_KEY"] = os.getenv('LANGSMITH_API_KEY')
-        os.environ['LANGCHAIN_TRACING_V2'] = 'true'
+        if api_key := os.getenv('OPENAI_API_KEY'):
+            os.environ["OPENAI_API_KEY"] = api_key
+        if pinecone_key := os.getenv('PINECONE_API_KEY'):
+            os.environ["PINECONE_API_KEY"] = pinecone_key
+        if langsmith_key := os.getenv('LANGSMITH_API_KEY'):
+            os.environ["LANGSMITH_API_KEY"] = langsmith_key
+        if os.getenv('LANGCHAIN_TRACING_V2'):
+            os.environ['LANGCHAIN_TRACING_V2'] = 'true'
         os.environ['LANGCHAIN_ENDPOINT'] = 'https://api.smith.langchain.com'
 
     def update_llm(self, model: BaseModel):
         self.llm = model.get_model()
         self.generator.llm = self.llm 
 
-    #TODO MAKE THIS ASYNC??? and others down the line
-    async def handle_query(self, question):
-        # self.generator.memory.save_context({"input": question}, {"output": generated})
+    async def handle_chat_query(self, question):
+        """Handle chat-based queries using the generator for streaming responses."""
         async for generated_chunk in self.generator.invoke_async(question):
-            yield generated_chunk  
+            yield generated_chunk
 
-    
-    # TODO can integrate with ChatMessageHistory eventualy instead of JSON objects,
-    # would just have to adjust frontend, specifically with postgresql class
+    #TODO make this more modular probably and combine the functionalities with init 
+    def handle_search_query(self, question):
+        """Handle search queries by expanding the query and retrieving relevant documents."""
+        # Without custom prompt for expansion for now uses built in LangChain 
+        search_retriever = MultiQueryRetriever.from_llm(self.retriever, self.llm)
+        docs = search_retriever.invoke(question)
+        # Format results
+        results = []
+        # TODO figure out relevance scores
+        for doc in docs:
+            results.append(doc.metadata['document_id'])
+            if len(results) == 6:
+                break
+        
+        return results[:6]
+
+    # TODO can integrate with ChatMessageHistory eventualy instead of JSON objects, would just have to adjust frontend, specifically with postgresql class
     def load_memory(self, chat_history: ChatMessageHistory):
         self.generator.update_chat_history(chat_history)

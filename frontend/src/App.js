@@ -13,7 +13,6 @@ function App() {
   return (
     <Router>
       <div className="App">
-        <h1>Chat with Policy Bot</h1>
         <Routes>
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login setToken={setToken} />} />

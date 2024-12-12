@@ -12,6 +12,8 @@ from django.contrib.auth.models import User
 from langchain.memory import ChatMessageHistory
 from django.shortcuts import get_object_or_404
 import json
+from pymongo import MongoClient
+from django.conf import settings
 
 
 class UserCreate(generics.CreateAPIView):
@@ -189,3 +191,82 @@ class UserSettingsView(APIView):
             return Response({'status': 'settings updated', 'updated_fields': serializer.data})
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DocumentSearchView(APIView):
+    """
+    View for searching documents stored in MongoDB using RAG system.
+    Returns most recent documents if no query is provided,
+    or most relevant documents based on similarity search if query exists.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize MongoDB connection
+        self.client = MongoClient(settings.MONGODB_URI)
+        self.db = self.client[settings.MONGODB_NAME]
+        # Adjust collection name as needed
+        self.collection = self.db['test'] 
+
+    def get(self, request, *args, **kwargs):
+        """
+        Handles GET requests for document search.
+        Uses RAG system for similarity search and fetches document details from MongoDB.
+        """
+        query = request.query_params.get('query', '')
+        
+        try:
+            if query:
+                # Use RAG system for similarity search
+                rag_system = RAGSystem()
+                # Get document IDs from RAG system
+                doc_ids = rag_system.handle_search_query(query)
+                
+                # Get document details from MongoDB using the IDs
+                documents = list(self.collection.find(
+                    {'document_id': {'$in': doc_ids}},
+                    {
+                        'document_id': 1,
+                        'title': 1, 
+                        'summary': 1, 
+                        'url': 1,
+                        'publication_date': 1
+                    }
+                ))
+                
+                # Sort documents to match the order of doc_ids
+                doc_map = {doc['document_id']: doc for doc in documents}
+                documents = [doc_map[doc_id] for doc_id in doc_ids if doc_id in doc_map]
+            else:
+                # If no query, return most recent documents from MongoDB
+                documents = list(self.collection.find(
+                    {},
+                    {
+                        'document_id': 1,
+                        'title': 1, 
+                        'summary': 1, 
+                        'url': 1,
+                        'publication_date': 1,
+                        'processed_at': 1
+                    }
+                ).sort('processed_at', -1).limit(6))
+
+            # Format the response
+            results = [{
+                'id': doc['document_id'],
+                'title': doc['title'],
+                'summary': doc['summary'],
+                'url': doc['url'],
+                'created_at': doc['created_at'].isoformat() if 'created_at' in doc else None
+            } for doc in documents]
+
+            return Response({
+                'query': query,
+                'results': results
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

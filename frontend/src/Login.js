@@ -7,7 +7,6 @@ const Login = ({ setToken }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   let navigate = useNavigate();
-  // console.log('Login component rendered'); // To check if the component is rendering
 
   const handleLogin = async () => {
     try {
