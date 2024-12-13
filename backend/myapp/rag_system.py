@@ -46,7 +46,7 @@ class BasePromptTemplate:
 # Concrete implementations
 class OpenAIModel(BaseModel):
     def get_model(self):
-        return ChatOpenAI(model="gpt-4o")
+        return ChatOpenAI(model="gpt-4")
 
 class OpenAIEmbeddingsModel(BaseEmbeddings):
     def get_embeddings(self):

@@ -13,12 +13,18 @@ function Chat({ token }) {
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [showChatHistory, setShowChatHistory] = useState(false);
+  const [renamingSessionId, setRenamingSessionId] = useState(null);
+  const [newChatName, setNewChatName] = useState('');
   const websocket = useRef(null);
   const aiMessageRef = useRef('');
   const messagesEndRef = useRef(null);
+  const chatMessagesRef = useRef(null);
+  const chatHistoryRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
@@ -116,6 +122,11 @@ function Chat({ token }) {
   };
   
   const handleChat = () => {
+    if (!currentSessionId) {
+      // If no session exists, create a new one
+      handleStartNewChat();
+      return;
+    }
     // push human message
     aiMessageRef.current = ''
     setHistory((prev) => [...prev, { role: 'human', content: message}]);
@@ -172,7 +183,6 @@ function Chat({ token }) {
           headers: { Authorization: `Token ${token}` },
         }
       );
-      alert('Name updated!');
       setShowSettings(false);
     } catch (error) {
       console.error('Error updating name:', error);
@@ -190,6 +200,7 @@ function Chat({ token }) {
       console.error('Error fetching user data:', error);
     }
   };
+  
   const handleDeleteChat = async (sessionId) => {
     try {
       await api.delete(`/chat/sessions/${sessionId}/`, {
@@ -204,28 +215,46 @@ function Chat({ token }) {
       console.error('Error deleting chat:', error);
     }
   };
-  
+
   const handleRenameChat = async (sessionId, newName) => {
     try {
       await api.patch(`/chat/sessions/${sessionId}/`, 
         { name: newName },
-        { headers: { Authorization: `Token ${token}` },
-      });
+        { headers: { Authorization: `Token ${token}` }}
+      );
       setSessions(sessions.map(session => 
         session.session_id === sessionId 
           ? { ...session, name: newName }
           : session
       ));
+      setRenamingSessionId(null);
+      setNewChatName('');
     } catch (error) {
       console.error('Error renaming chat:', error);
     }
   };
   
+  // Close chat history when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (chatHistoryRef.current && !chatHistoryRef.current.contains(event.target)) {
+        setShowChatHistory(false);
+      }
+    };
+
+    if (showChatHistory) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showChatHistory]);
+
   return (
     <div className="app-container">
-      <header className="app-header">
+      <div className="app-header">
         <h1>PolicyAI</h1>
-      </header>
+      </div>
       <div className="main-content">
         <div className="chat-section">
           <div className="chat-header">
@@ -236,45 +265,104 @@ function Chat({ token }) {
               New Chat
             </button>
           </div>
-
+          
           {showChatHistory && (
-            <div className="chat-history-modal">
-              <div className="chat-history-content">
-                <div className="chat-history-header">
-                  <h2>Chat History</h2>
-                  <button 
-                    className="close-button"
-                    onClick={() => setShowChatHistory(false)}
-                  >
-                    ×
-                  </button>
-                </div>
-                <div className="sessions-list">
+            <div className="chat-history-overlay">
+              <div className="chat-history-modal" ref={chatHistoryRef}>
+                <h2>Previous Chats</h2>
+                <div className="chat-sessions-list">
                   {sessions.map((session) => (
-                    <ChatSessionItem
+                    <div
                       key={session.session_id}
-                      session={session}
-                      isActive={session.session_id === currentSessionId}
-                      onSelect={() => {
+                      className="chat-session-item"
+                      onClick={() => {
                         handleLoadPreviousChat(session.session_id);
                         setShowChatHistory(false);
                       }}
-                      onRename={(newName) => handleRenameChat(session.session_id, newName)}
-                      onDelete={() => handleDeleteChat(session.session_id)}
-                    />
+                    >
+                      <div className="session-info">
+                        {renamingSessionId === session.session_id ? (
+                          <input
+                            type="text"
+                            value={newChatName}
+                            onChange={(e) => setNewChatName(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleRenameChat(session.session_id, newChatName);
+                              }
+                            }}
+                            placeholder="Enter new name"
+                            className="rename-input"
+                          />
+                        ) : (
+                          <span className="session-name">{session.name || 'Untitled Chat'}</span>
+                        )}
+                        <span className="session-date">
+                          {new Date(session.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="session-actions">
+                        {renamingSessionId === session.session_id ? (
+                          <>
+                            <button
+                              className="rename-button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRenameChat(session.session_id, newChatName);
+                              }}
+                              title="Save"
+                            >
+                              Save
+                            </button>
+                            <button
+                              className="rename-button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRenamingSessionId(null);
+                                setNewChatName('');
+                              }}
+                              title="Cancel"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="rename-button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRenamingSessionId(session.session_id);
+                              setNewChatName(session.name || '');
+                            }}
+                            title="Rename chat"
+                          >
+                            ✎
+                          </button>
+                        )}
+                        <button
+                          className="delete-session-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChat(session.session_id);
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
             </div>
           )}
 
-          <div className="chat-messages" ref={messagesEndRef}>
+          <div className="chat-messages" ref={chatMessagesRef}>
             {history.map((msg, index) => (
               <div key={index} className={`message ${msg.role}`}>
                 <div className="message-content">{msg.content}</div>
               </div>
             ))}
-            <div ref={messagesEndRef} />
           </div>
 
           <div className="chat-input">

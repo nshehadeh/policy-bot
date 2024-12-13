@@ -32,9 +32,7 @@ ALLOWED_HOSTS = ["*"]
 
 #MongoDB settings
 MONGODB_URI = os.getenv('MONGO_CONNECTION_STRING')
-MONGODB_NAME = "govai"
-
-# Application definition
+MONGODB_NAME = 'govai'
 
 INSTALLED_APPS = [
     'django.contrib.admin',

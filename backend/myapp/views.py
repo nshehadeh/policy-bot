@@ -14,6 +14,8 @@ from django.shortcuts import get_object_or_404
 import json
 from pymongo import MongoClient
 from django.conf import settings
+import os
+from bson import ObjectId  # Add this import at the top of the file
 
 
 class UserCreate(generics.CreateAPIView):
@@ -204,10 +206,11 @@ class DocumentSearchView(APIView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Initialize MongoDB connection
-        self.client = MongoClient(settings.MONGODB_URI)
-        self.db = self.client[settings.MONGODB_NAME]
-        # Adjust collection name as needed
-        self.collection = self.db['test'] 
+        connection_string = os.getenv('MONGO_CONNECTION_STRING')
+        self.client = MongoClient(connection_string)
+        self.db = self.client['govai']
+        self.collection = self.db['test']
+        #print("Connected to MongoDB successfully.")
 
     def get(self, request, *args, **kwargs):
         """
@@ -220,53 +223,70 @@ class DocumentSearchView(APIView):
             if query:
                 # Use RAG system for similarity search
                 rag_system = RAGSystem()
-                # Get document IDs from RAG system
                 doc_ids = rag_system.handle_search_query(query)
+                print(f"Document IDs from RAG: {doc_ids}")
                 
-                # Get document details from MongoDB using the IDs
-                documents = list(self.collection.find(
-                    {'document_id': {'$in': doc_ids}},
-                    {
-                        'document_id': 1,
-                        'title': 1, 
-                        'summary': 1, 
-                        'url': 1,
-                        'publication_date': 1
-                    }
-                ))
-                
-                # Sort documents to match the order of doc_ids
-                doc_map = {doc['document_id']: doc for doc in documents}
-                documents = [doc_map[doc_id] for doc_id in doc_ids if doc_id in doc_map]
+                # Convert string IDs to ObjectIds for MongoDB
+                try:
+                    object_ids = [ObjectId(id_str) for id_str in doc_ids if ObjectId.is_valid(id_str)]
+                    print(f"Converted ObjectIDs: {object_ids}")
+                    
+                    # Get document details from MongoDB using the IDs
+                    documents = list(self.collection.find(
+                        {'_id': {'$in': object_ids}},
+                        {
+                            '_id': 1,
+                            'title': 1, 
+                            'summary': 1, 
+                            'html_url': 1,
+                            'publication_date': 1,
+                            'processed_at': 1,
+                            'document_number': 1
+                        }
+                    ))
+                    print(f"Found {len(documents)} documents in MongoDB")
+                    
+                    # Sort documents to match the order of doc_ids
+                    id_to_doc = {str(doc['_id']): doc for doc in documents}
+                    documents = [id_to_doc[id_str] for id_str in doc_ids if id_str in id_to_doc]
+                    
+                except Exception as e:
+                    print(f"Error processing document IDs: {str(e)}")
+                    documents = []
             else:
-                # If no query, return most recent documents from MongoDB
+                # If no query, return most recent documents
                 documents = list(self.collection.find(
                     {},
                     {
-                        'document_id': 1,
+                        '_id': 1,
                         'title': 1, 
                         'summary': 1, 
-                        'url': 1,
+                        'html_url': 1,
                         'publication_date': 1,
-                        'processed_at': 1
+                        'processed_at': 1,
+                        'document_number': 1
                     }
                 ).sort('processed_at', -1).limit(6))
 
             # Format the response
             results = [{
-                'id': doc['document_id'],
-                'title': doc['title'],
-                'summary': doc['summary'],
-                'url': doc['url'],
-                'created_at': doc['created_at'].isoformat() if 'created_at' in doc else None
+                'id': str(doc['_id']),
+                'title': doc.get('title', 'Untitled'),
+                'summary': doc.get('summary', 'No summary available'),
+                'url': doc.get('html_url', '#'),
+                'created_at': doc.get('processed_at', doc.get('publication_date')),
+                'document_number': doc.get('document_number'),
+                'agencies': doc.get('agencies', [])
             } for doc in documents]
-
+            
+            print(f"Returning {len(results)} formatted results")
             return Response({
                 'query': query,
                 'results': results
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
+            print(f"Search error: {str(e)}")
             return Response({
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
