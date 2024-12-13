@@ -10,6 +10,7 @@ function Chat({ token }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [showChatHistory, setShowChatHistory] = useState(false);
@@ -387,28 +388,68 @@ function Chat({ token }) {
           <DocumentSearch token={token} />
         </div>
       </div>
-      <button className="settings-button" onClick={() => setShowSettings(!showSettings)}>
-        Settings
-      </button>
-      {showSettings && (
+      {!showSettings ? (
+        <button 
+          className="settings-button" 
+          onClick={() => {
+            setShowSettings(true);
+            handleFetchUserData();
+            setIsEditingSettings(false);
+          }}
+        >
+          Settings
+        </button>
+      ) : (
         <div className="settings-panel">
-          <input
-            type="text"
-            placeholder="First Name"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="settings-input"
-          />
-          <input
-            type="text"
-            placeholder="Last Name"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className="settings-input"
-          />
-          <button onClick={handleNameChange} className="button-standard">
-            Save Settings
-          </button>
+          <div className="settings-header">
+            <button 
+              className="settings-close"
+              onClick={() => setShowSettings(false)}
+              title="Close settings"
+            >
+              ×
+            </button>
+            <h3>User Settings</h3>
+          </div>
+          <div className="settings-form">
+            <div className="form-group">
+              <label>First Name</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                disabled={!isEditingSettings}
+                className="settings-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Last Name</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                disabled={!isEditingSettings}
+                className="settings-input"
+              />
+            </div>
+          </div>
+          <div className="settings-footer">
+            {isEditingSettings ? (
+              <button 
+                className="save-button"
+                onClick={handleNameChange}
+              >
+                Save
+              </button>
+            ) : (
+              <button 
+                className="edit-button"
+                onClick={() => setIsEditingSettings(true)}
+              >
+                Edit
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

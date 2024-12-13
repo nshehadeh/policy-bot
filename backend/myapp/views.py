@@ -15,7 +15,7 @@ import json
 from pymongo import MongoClient
 from django.conf import settings
 import os
-from bson import ObjectId  # Add this import at the top of the file
+from bson import ObjectId 
 
 
 class UserCreate(generics.CreateAPIView):
