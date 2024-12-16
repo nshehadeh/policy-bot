@@ -148,10 +148,14 @@ def transform(raw_data):
                 "raw_text": raw_text,  # Store extracted text
                 "agencies": item.get("agencies", []),
                 "excerpts": item.get("excerpts", []),
-                "summary": None,  # Placeholder for summarization
-                "chunked": False,  # Indicates if the document has been chunked
-                "embedded": False,  # Indicates if embeddings are generated
-                "processed_at": None,  # Timestamp of the last processing
+                # Placeholder for summarization
+                "summary": None,  
+                # Indicates if the document has been chunked
+                "chunked": False, 
+                # Indicates if embeddings are generated
+                "embedded": False, 
+                 # Timestamp of the last processing
+                "processed_at": None,
             })
 
         logging.info(f"Text extraction summary: {raw_text_count} from raw_text_url, {full_text_count} from full_text_xml_url, {pdf_text_count} from pdf_url, {failed_text_count} failures.")
@@ -176,7 +180,6 @@ def load_into_mongo(data):
         logging.error(f"Failed to load data into MongoDB: {e}")
         raise
 
-# Main ETL Process
 if __name__ == "__main__":
     import argparse
 

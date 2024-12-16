@@ -4,15 +4,12 @@ from bs4 import BeautifulSoup
 import concurrent.futures
 from dotenv import load_dotenv
 import os
-from typing import Literal, Optional
+from typing import Literal
 from pydantic import BaseModel, Field, ValidationError
 from tqdm import tqdm
 from html import unescape
 import re
 
-
-
-# TODO Generate proper method comments using chatgpt
 # Load .env environment variables
 load_dotenv()
 # MongoDB connection str
@@ -54,10 +51,9 @@ def insert_article(article_data):
 def fetch_url(url):
     response = requests.get(url)
     # No sleep for now, possibly implement this if you're getting errors/ temp bans from website
-    # time.sleep(random.uniform(1, 3))  # Sleep for a random interval between 1 and 3 seconds
+    # time.sleep(random.uniform(1, 3))
     return response
 
-# TODO Actually go to article and parse information now
 def parse_page(content):
     """Parses multiple article urls from a briefing room page
 
@@ -98,8 +94,6 @@ def clean_html_content(html_content):
 
     return text
  
-#TODO if necessary in the future, add a determine_author_function possibly using LLMs
-
 def scrape_article(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
