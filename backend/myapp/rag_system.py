@@ -1,8 +1,7 @@
 import os
-from re import search
+
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
 from dotenv import load_dotenv
 from langchain_pinecone import PineconeVectorStore
 from pprint import pprint
@@ -11,14 +10,10 @@ from threading import Lock
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from time import sleep
 import asyncio
 from typing import Optional
-from langchain.retrievers.multi_query import MultiQueryRetriever
-
-
 
 # Abstract base classes
 class BaseModel: 
@@ -46,7 +41,7 @@ class BasePromptTemplate:
 # Concrete implementations
 class OpenAIModel(BaseModel):
     def get_model(self):
-        return ChatOpenAI(model="gpt-4")
+        return ChatOpenAI(model="gpt-4o")
 
 class OpenAIEmbeddingsModel(BaseEmbeddings):
     def get_embeddings(self):
@@ -133,7 +128,7 @@ class Generator:
         self.chat_history = chat_history
         
         self.question_answer_chain = create_stuff_documents_chain(self.llm, self.qa_prompt)
-        self.history_aware_retriever = create_history_aware_retriever(llm, retriever, self.context_q_prompt)
+        self.history_aware_retriever = create_history_aware_retriever(self.llm, self.retriever, self.context_q_prompt)
         self.rag_chain = create_retrieval_chain(self.history_aware_retriever, self.question_answer_chain)
         
         self.conversational_rag_chain = RunnableWithMessageHistory(
@@ -162,8 +157,34 @@ class Generator:
     def get_session_history(self):
         return self.chat_history
 
+# Search Class
+class Search:
+    def __init__(self, llm, retriever, prompt_template):
+        self.llm = llm
+        self.retriever = retriever
+        self.prompt = prompt_template
+        self.query_search_chain = self.prompt | self.llm | StrOutputParser()
+        
+    def invoke(self, question):
+        """Handle search queries by expanding the query and retrieving relevant documents."""
+        # TODO Add relevance scores
+        try:
+            expanded_query = self.query_search_chain.invoke(question)
+            docs = self.retriever.invoke(expanded_query)
+            results = []
+            for doc in docs:
+                doc_id = doc.metadata.get('id')
+                if doc_id:
+                    results.append(doc_id)
+                if len(results) >= 7:
+                    break
+            return results[:6]
+        
+        except Exception as e:
+            print(f"Search error: {str(e)}")
+            return []
+
 # Singleton RAGSystem
-# Can eventually improve on configuration management and concurrency
 class RAGSystem:
     _instance = None
     _lock = Lock()
@@ -181,14 +202,13 @@ class RAGSystem:
                  vector_store: Optional[BaseVectorStore] = None, 
                  prompt_template: Optional[BasePromptTemplate] = None,
                  chat_history: ChatMessageHistory = ChatMessageHistory()):
-        if not hasattr(self, '_initialized'):  # Singleton
+        if not hasattr(self, '_initialized'):
             load_dotenv()
             self._load_environment_variables()
 
             self.llm = (model or OpenAIModel()).get_model()
             self.embeddings = (embeddings or OpenAIEmbeddingsModel()).get_embeddings()
-            self.vector_store = (vector_store or PineconeVectorStoreModel(index_name="federal-register", embeddings=self.embeddings)).get_vector_store()
-            # TODO make and improve retriever class by making context aware, getting full documents from mongodb, etc
+            self.vector_store = (vector_store or PineconeVectorStoreModel(index_name="langchain-index", embeddings=self.embeddings)).get_vector_store()
             self.retriever = self.vector_store.as_retriever(
                 search_type="similarity",
                 search_kwargs={'k': 6}
@@ -197,7 +217,7 @@ class RAGSystem:
             self.context_prompt = ContextPromptTemplate().get_prompt_template()
             self.query_search_prompt = QuerySearchPromptTemplate().get_prompt_template()
             self.generator = Generator(self.llm, self.retriever, self.qa_prompt, self.context_prompt, chat_history)
-                        
+            self.search = Search(self.llm, self.retriever, self.query_search_prompt)
             self._initialized = True
             self.msg = ""
 
@@ -219,24 +239,10 @@ class RAGSystem:
     async def handle_chat_query(self, question):
         """Handle chat-based queries using the generator for streaming responses."""
         async for generated_chunk in self.generator.invoke_async(question):
-            yield generated_chunk
+            yield generated_chunk.strip()
 
-    #TODO make this more modular probably and combine the functionalities with init 
     def handle_search_query(self, question):
-        """Handle search queries by expanding the query and retrieving relevant documents."""
-        # Without custom prompt for expansion for now uses built in LangChain 
-        search_retriever = MultiQueryRetriever.from_llm(self.retriever, self.llm)
-        docs = search_retriever.invoke(question)
-        # Format results
-        results = []
-        # TODO figure out relevance scores
-        for doc in docs:
-            results.append(doc.metadata['document_id'])
-            if len(results) == 6:
-                break
-        
-        return results[:6]
+        return self.search.invoke(question)
 
-    # TODO can integrate with ChatMessageHistory eventualy instead of JSON objects, would just have to adjust frontend, specifically with postgresql class
     def load_memory(self, chat_history: ChatMessageHistory):
         self.generator.update_chat_history(chat_history)

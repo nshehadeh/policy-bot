@@ -208,8 +208,8 @@ class DocumentSearchView(APIView):
         # Initialize MongoDB connection
         connection_string = os.getenv('MONGO_CONNECTION_STRING')
         self.client = MongoClient(connection_string)
-        self.db = self.client['govai']
-        self.collection = self.db['test']
+        self.db = self.client['WTP']
+        self.collection = self.db['whbriefingroom']
         #print("Connected to MongoDB successfully.")
 
     def get(self, request, *args, **kwargs):
@@ -238,10 +238,9 @@ class DocumentSearchView(APIView):
                             '_id': 1,
                             'title': 1, 
                             'summary': 1, 
-                            'html_url': 1,
-                            'publication_date': 1,
-                            'processed_at': 1,
-                            'document_number': 1
+                            'url': 1,
+                            'date_posted': 1,
+                            'category': 1
                         }
                     ))
                     print(f"Found {len(documents)} documents in MongoDB")
@@ -254,29 +253,30 @@ class DocumentSearchView(APIView):
                     print(f"Error processing document IDs: {str(e)}")
                     documents = []
             else:
-                # If no query, return most recent documents
-                documents = list(self.collection.find(
-                    {},
-                    {
-                        '_id': 1,
-                        'title': 1, 
-                        'summary': 1, 
-                        'html_url': 1,
-                        'publication_date': 1,
-                        'processed_at': 1,
-                        'document_number': 1
+                # If no query, return random documents
+                documents = list(self.collection.aggregate([
+                    { "$match": { "summary": { "$exists": True } } },  # Only get documents with summaries
+                    { "$sample": { "size": 6 } },
+                    { 
+                        "$project": {
+                            "_id": 1,
+                            "title": 1,
+                            "summary": 1,
+                            "url": 1,
+                            "date_posted": 1,
+                            "category": 1
+                        }
                     }
-                ).sort('processed_at', -1).limit(6))
+                ]))
 
             # Format the response
             results = [{
                 'id': str(doc['_id']),
                 'title': doc.get('title', 'Untitled'),
                 'summary': doc.get('summary', 'No summary available'),
-                'url': doc.get('html_url', '#'),
-                'created_at': doc.get('processed_at', doc.get('publication_date')),
-                'document_number': doc.get('document_number'),
-                'agencies': doc.get('agencies', [])
+                'url': doc.get('url', '#'),
+                'date_posted': doc.get('date_posted'),
+                'category': doc.get('category', 'Uncategorized')
             } for doc in documents]
             
             print(f"Returning {len(results)} formatted results")
