@@ -7,15 +7,11 @@ The project uses a Django backend and React frontend. The Django backend uses Dj
 ![alt text](demo.png)
 
 To setup:
-- Install requirements.txt in backend/
+- Create a conda environment in backend/ with conda env create -f environment.yml
 - Run python manage.py makemigrations and python manage.py migrate
-- Install requirements.txt in frontend/
 - Run yarn install in frontend/
 
 To run:
-- Create a conda environment in backend/ with conda env create -f environment.yml
-- Run yarn install in frontend/
-
 - Start React server in  frontend/ with yarn start, if there are issues run: rm -rf node_modules --> yarn install --> yarn start
 - Start Daphne server in backend/ with daphne policybot.asgi:application
 - Start redis with redis-server
