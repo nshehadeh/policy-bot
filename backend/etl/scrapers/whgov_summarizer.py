@@ -63,44 +63,62 @@ def summarize_documents():
         collection = get_mongo_collection()
         
         # Get total document count for progress tracking
-        total_docs = collection.count_documents({})
+        query = {"content": {"$exists": True}, "summary": {"$exists": False}}
+        total_docs = collection.count_documents(query)
         logger.info(f"Found {total_docs} documents to process")
         
         # Process documents in batches
-        batch_size = 500
+        batch_size = 50
         processed = 0
         
-        # Get all documents that don't have a summary yet
-        cursor = collection.find(
-            {"content": {"$exists": True}, "summary": {"$exists": False}},
-            {"_id": 1, "content": 1}
-        )
-        
-        for doc in tqdm(cursor, total=total_docs, desc="Summarizing documents"):
-            try:
-                content = doc.get('content')
-                if not content:
-                    logger.warning(f"Document {doc['_id']} has no content, skipping")
-                    continue
+        with tqdm(total=total_docs, desc="Summarizing documents") as pbar:
+            # Process documents in batches using _id for pagination
+            last_id = None
+            while processed < total_docs:
+                # Build query with _id pagination
+                batch_query = query.copy()
+                if last_id:
+                    batch_query['_id'] = {'$gt': last_id}
                 
-                # Generate summary
-                summary = generate_summary(content)
-                if summary:
-                    # Update document with summary
-                    collection.update_one(
-                        {"_id": doc["_id"]},
-                        {"$set": {"summary": summary}}
-                    )
-                    
-                    processed += 1
-                    if processed % batch_size == 0:
-                        logger.info(f"Processed {processed}/{total_docs} documents")
-                else:
-                    logger.warning(f"Failed to generate summary for document {doc['_id']}")
+                # Get batch of documents
+                batch = list(collection.find(batch_query)
+                           .sort('_id', 1)
+                           .limit(batch_size))
                 
-            except Exception as e:
-                logger.error(f"Error processing document {doc['_id']}: {str(e)}")
-                continue
+                if not batch:
+                    break
+                
+                for doc in batch:
+                    try:
+                        content = doc.get('content')
+                        if not content:
+                            logger.warning(f"Document {doc['_id']} has no content, skipping")
+                            continue
+                        
+                        # Generate summary
+                        summary = generate_summary(content)
+                        if summary:
+                            # Update document with summary
+                            collection.update_one(
+                                {"_id": doc["_id"]},
+                                {"$set": {"summary": summary}}
+                            )
+                            
+                            processed += 1
+                            pbar.update(1)
+                            
+                            if processed % batch_size == 0:
+                                logger.info(f"Processed {processed}/{total_docs} documents")
+                        else:
+                            logger.warning(f"Failed to generate summary for document {doc['_id']}")
+                        
+                    except Exception as e:
+                        logger.error(f"Error processing document {doc['_id']}: {str(e)}")
+                        continue
+                
+                # Update last_id for next batch
+                last_id = batch[-1]['_id']
+                logger.info(f"Completed batch. Total processed: {processed}/{total_docs}")
         
         logger.info(f"Completed processing. Total documents processed: {processed}")
         

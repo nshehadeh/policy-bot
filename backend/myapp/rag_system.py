@@ -1,5 +1,4 @@
 import os
-
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
@@ -68,7 +67,7 @@ class QAPromptTemplate(BasePromptTemplate):
             "Use the following pieces of retrieved context to answer "
             "the question. If you don't know the answer, say that you "
             "don't know. Use three sentences maximum and keep the "
-            "answer concise. Give a summary of metadata used for any retrieved context."
+            "answer concise. It is required to provide a one line source of the context metadata used at the end of your answer."
             "\n\n"
             "{context}"
         )
@@ -136,7 +135,7 @@ class Generator:
             self.get_session_history,
             input_messages_key="input",
             history_messages_key="chat_history",
-            output_messages_key="answer", 
+            output_messages_key="answer",
         )
         
     def invoke(self, question):
@@ -149,7 +148,7 @@ class Generator:
         async for chunk in self.conversational_rag_chain.astream({"input": question}):
             if 'answer' in chunk:
                 yield chunk['answer']
-                await asyncio.sleep(0.1)       
+                await asyncio.sleep(0.1)         
                  
     def update_chat_history(self, new_chat_history: ChatMessageHistory):
         self.chat_history = new_chat_history
@@ -217,6 +216,7 @@ class RAGSystem:
             self.context_prompt = ContextPromptTemplate().get_prompt_template()
             self.query_search_prompt = QuerySearchPromptTemplate().get_prompt_template()
             self.generator = Generator(self.llm, self.retriever, self.qa_prompt, self.context_prompt, chat_history)
+
             self.search = Search(self.llm, self.retriever, self.query_search_prompt)
             self._initialized = True
             self.msg = ""
@@ -239,7 +239,7 @@ class RAGSystem:
     async def handle_chat_query(self, question):
         """Handle chat-based queries using the generator for streaming responses."""
         async for generated_chunk in self.generator.invoke_async(question):
-            yield generated_chunk.strip()
+            yield generated_chunk
 
     def handle_search_query(self, question):
         return self.search.invoke(question)

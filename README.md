@@ -13,7 +13,10 @@ To setup:
 - Run yarn install in frontend/
 
 To run:
-- Start React server in  frontend/ with yarn start, if issues run: rm -rf node_modules --> yarn install --> yarn start
+- Create a conda environment in backend/ with conda env create -f environment.yml
+- Run yarn install in frontend/
+
+- Start React server in  frontend/ with yarn start, if there are issues run: rm -rf node_modules --> yarn install --> yarn start
 - Start Daphne server in backend/ with daphne policybot.asgi:application
 - Start redis with redis-server
 
