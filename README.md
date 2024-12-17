@@ -1,4 +1,4 @@
-# GovAI
+# PolicyAI
 ### Policy RAG App 
 
 Description:
