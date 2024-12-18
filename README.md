@@ -7,6 +7,7 @@ The project uses a Django backend and React frontend. The Django backend uses Dj
 ![alt text](demo.png)
 
 To setup:
+- Clone this branch for aviary demo
 - Create a conda environment in backend/ with conda env create -f environment.yml
 - Run python manage.py makemigrations and python manage.py migrate
 - Run yarn install in frontend/
