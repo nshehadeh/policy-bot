@@ -1,14 +1,14 @@
 // App.js
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Login from './components/Auth/Login';
-import Chat from './components/Chat/Chat';
-import Register from './components/Auth/Register'
-import './App.css';
+import React, { useState } from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Login from "./components/Auth/Login";
+import Chat from "./components/Chat/Chat";
+import Register from "./components/Auth/Register";
+import "./App.css";
 
 function App() {
-  const [token, setToken] = useState('');
-  console.log('App rendered');
+  const [token, setToken] = useState("");
+  console.log("App rendered");
 
   return (
     <Router>

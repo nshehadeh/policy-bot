@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
-const ChatSessionItem = ({ 
-  session, 
-  isActive, 
-  onSelect, 
+const ChatSessionItem = ({
+  session,
+  isActive,
+  onSelect,
   onDelete,
-  onRename 
+  onRename,
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
-  const [newName, setNewName] = useState(session.name || new Date(session.created_at).toLocaleString());
+  const [newName, setNewName] = useState(
+    session.name || new Date(session.created_at).toLocaleString()
+  );
 
   const handleRename = (e) => {
     e.preventDefault();
@@ -28,10 +30,12 @@ const ChatSessionItem = ({
           autoFocus
         />
         <div className="rename-actions">
-          <button type="submit" className="action-button save">Save</button>
-          <button 
-            type="button" 
-            onClick={() => setIsRenaming(false)} 
+          <button type="submit" className="action-button save">
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsRenaming(false)}
             className="action-button cancel"
           >
             Cancel
@@ -42,8 +46,8 @@ const ChatSessionItem = ({
   }
 
   return (
-    <div 
-      className={`session-item ${isActive ? 'active' : ''}`}
+    <div
+      className={`session-item ${isActive ? "active" : ""}`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
@@ -53,18 +57,17 @@ const ChatSessionItem = ({
       >
         {session.name || new Date(session.created_at).toLocaleString()}
       </button>
-      
+
       {showActions && (
         <div className="session-actions">
-          <button 
-            onClick={() => setIsRenaming(true)}
-            className="action-button"
-          >
+          <button onClick={() => setIsRenaming(true)} className="action-button">
             ✎
           </button>
-          <button 
+          <button
             onClick={() => {
-              if (window.confirm('Are you sure you want to delete this chat?')) {
+              if (
+                window.confirm("Are you sure you want to delete this chat?")
+              ) {
                 onDelete(session.session_id);
               }
             }}

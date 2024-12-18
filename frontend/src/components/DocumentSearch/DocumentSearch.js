@@ -1,27 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import api from '../../services/api';
-import './DocumentSearch.css';
+import React, { useState, useEffect } from "react";
+import api from "../../services/api";
+import "./DocumentSearch.css";
 
 const DocumentSearch = ({ token }) => {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // Load initial documents
-    fetchDocuments('');
+    fetchDocuments("");
   }, []);
 
   const fetchDocuments = async (searchQuery) => {
     setLoading(true);
     try {
-      const response = await api.get(`/search/?query=${encodeURIComponent(searchQuery)}`, {
-        headers: { Authorization: `Token ${token}` },
-      });
+      const response = await api.get(
+        `/search/?query=${encodeURIComponent(searchQuery)}`,
+        {
+          headers: { Authorization: `Token ${token}` },
+        }
+      );
       setResults(response.data.results || []);
     } catch (error) {
-      console.error('Error fetching documents:', error);
+      console.error("Error fetching documents:", error);
     }
     setLoading(false);
   };
@@ -41,7 +44,7 @@ const DocumentSearch = ({ token }) => {
 
   // Close overlay when clicking outside the document details
   const handleOverlayClick = (e) => {
-    if (e.target.classList.contains('document-overlay')) {
+    if (e.target.classList.contains("document-overlay")) {
       setSelectedDocument(null);
     }
   };
