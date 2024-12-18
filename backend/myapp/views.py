@@ -1,3 +1,16 @@
+"""
+Django Views for the Policy Bot API.
+
+This module contains the API views for handling chat sessions, user management,
+document search, and user settings. It implements RESTful endpoints using Django REST Framework.
+
+Key components:
+- Chat session management (creation, updates, deletion)
+- User creation and settings management
+- Document search using RAG (Retrieval Augmented Generation)
+- Error handling and logging
+"""
+
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from pymongo.database import Database
@@ -31,11 +44,29 @@ logger = logging.getLogger(__name__)
 
 class BaseAPIView(APIView):
     """
-    Base API view with common error handling.
-    All views should inherit from this class to get consistent error handling.
+    Base API view with common error handling functionality.
+    
+    This class provides standardized error handling methods for database operations,
+    validation, and unexpected errors. All API views should inherit from this class
+    to maintain consistent error handling across the application.
+
+    Methods:
+        handle_database_error: Handles database-related errors
+        handle_validation_error: Handles data validation errors
+        handle_unexpected_error: Handles unexpected exceptions
     """
 
     def handle_database_error(self, e: DatabaseError, operation: str) -> Response:
+        """
+        Handle database-related errors with consistent logging and response format.
+
+        Args:
+            e (DatabaseError): The database error that occurred
+            operation (str): Description of the operation that failed
+
+        Returns:
+            Response: A 500 response with error details
+        """
         logger.error(f"Database error in {operation}: {e}")
         return Response(
             {"error": f"Database error while {operation}"},
@@ -43,10 +74,30 @@ class BaseAPIView(APIView):
         )
 
     def handle_validation_error(self, e: ValidationError, operation: str) -> Response:
+        """
+        Handle validation errors with consistent logging and response format.
+
+        Args:
+            e (ValidationError): The validation error that occurred
+            operation (str): Description of the operation that failed
+
+        Returns:
+            Response: A 400 response with validation error details
+        """
         logger.warning(f"Validation error in {operation}: {str(e)}")
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def handle_unexpected_error(self, e: Exception, operation: str) -> None:
+        """
+        Handle unexpected errors with logging and raise as API exception.
+
+        Args:
+            e (Exception): The unexpected error that occurred
+            operation (str): Description of the operation that failed
+
+        Raises:
+            APIException: Always raised with error details
+        """
         logger.error(f"Unexpected error in {operation}: {e}")
         raise APIException(f"Unexpected error while {operation}")
 
@@ -55,7 +106,7 @@ class UserCreate(generics.CreateAPIView):
     """
     View for creating a new user.
 
-    Inherits from Django's generic CreateAPIView.
+    This view requires authentication and creates a new user, inheriting error handling and creation from Django's CreateAPIView
 
     Attributes:
         queryset (QuerySet): All User objects.
@@ -67,9 +118,26 @@ class UserCreate(generics.CreateAPIView):
 
 
 class ChatView(BaseAPIView):
+    """
+    View for creating new chat sessions.
+
+    This view requires authentication and creates a new chat session
+    for the authenticated user.
+
+    Attributes:
+        permission_classes (list): Requires user authentication
+    """
+    
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
+        """
+        Create a new chat session for the authenticated user.
+
+        Returns:
+            Response: A 201 response with the new session ID on success,
+                     or appropriate error response on failure
+        """
         try:
             chat_session = ChatSession.objects.create(user=request.user)
             return Response(
@@ -82,17 +150,46 @@ class ChatView(BaseAPIView):
 
 
 class ChatSessionView(BaseAPIView):
+    """
+    View for managing existing chat sessions.
+
+    Provides endpoints for updating and deleting chat sessions.
+    Only allows users to modify their own chat sessions.
+
+    Attributes:
+        permission_classes (list): Requires user authentication
+    """
 
     permission_classes = [IsAuthenticated]
 
-    # Helper method for getting chat session
     def get_chat_session(self, session_id):
+        """
+        Retrieve a chat session for the current user.
+
+        Args:
+            session_id: The ID of the chat session to retrieve
+
+        Returns:
+            ChatSession: The requested chat session
+
+        Raises:
+            Http404: If the session doesn't exist or belongs to another user
+        """
         return get_object_or_404(
             ChatSession, session_id=session_id, user=self.request.user
         )
 
-    # Update chat name
     def patch(self, request, session_id, *args, **kwargs):
+        """
+        Update a chat session's details
+
+        Args:
+            request: The HTTP request
+            session_id: The ID of the chat session to update
+
+        Returns:
+            Response: Updated session data or error response
+        """
         try:
             session = self.get_chat_session(session_id)
             serializer = ChatSessionUpdateSerializer(
@@ -110,9 +207,17 @@ class ChatSessionView(BaseAPIView):
         except Exception as e:
             self.handle_unexpected_error(e, "updating chat session")
 
-    # Delete chat
     def delete(self, request, session_id, *args, **kwargs):
-        """Delete chat session"""
+        """
+        Delete a chat session.
+
+        Args:
+            request: The HTTP request
+            session_id: The ID of the chat session to delete
+
+        Returns:
+            Response: 204 No Content on success or error response
+        """
         try:
             session = self.get_chat_session(session_id)
             session.delete()
@@ -124,9 +229,27 @@ class ChatSessionView(BaseAPIView):
 
 
 class LoadPreviousChatView(BaseAPIView):
+    """
+    View for loading and managing chat history.
+
+    Provides endpoints for:
+    - Retrieving all chat sessions for a user
+    - Loading messages from a specific chat session
+    - Loading chat message history for the RAG system
+
+    Attributes:
+        permission_classes (list): Requires user authentication
+    """
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        """
+        Retrieve all chat sessions for the current user.
+
+        Returns:
+            Response: List of chat sessions ordered by creation date
+        """
         try:
             logger.info(f"Fetching chat sessions for user: {request.user}")
             chat_sessions = ChatSession.objects.filter(user=request.user).order_by(
@@ -141,6 +264,15 @@ class LoadPreviousChatView(BaseAPIView):
             self.handle_unexpected_error(e, "fetching chat sessions")
 
     def post(self, request, *args, **kwargs):
+        """
+        Load messages from a specific chat session and load chat history.
+
+        Args:
+            request: The HTTP request containing session_id
+
+        Returns:
+            Response: Chat messages and history for the RAG system
+        """
         try:
             session_id = request.data.get("session_id")
             if not session_id:
@@ -190,9 +322,24 @@ class LoadPreviousChatView(BaseAPIView):
 
 
 class UserSettingsView(BaseAPIView):
+    """
+    View for managing user settings.
+
+    Provides endpoints for retrieving and updating user settings.
+
+    Attributes:
+        permission_classes (list): Requires user authentication
+    """
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        """
+        Retrieve user settings.
+
+        Returns:
+            Response: User settings data
+        """
         try:
             logger.info(f"Retrieving settings for user: {request.user.id}")
             user = request.user
@@ -210,6 +357,15 @@ class UserSettingsView(BaseAPIView):
             self.handle_unexpected_error(e, "retrieving user settings")
 
     def post(self, request, *args, **kwargs):
+        """
+        Update user settings.
+
+        Args:
+            request: The HTTP request containing updated settings
+
+        Returns:
+            Response: Updated settings data or error response
+        """
         try:
             logger.info(f"Updating settings for user: {request.user.id}")
             user = request.user
@@ -231,14 +387,26 @@ class UserSettingsView(BaseAPIView):
 
 class DocumentSearchView(BaseAPIView):
     """
-    View for searching documents stored in MongoDB using RAG system.
-    Returns most recent documents if no query is provided,
-    or most relevant documents based on similarity search if query exists.
+    View for searching documents using the RAG system.
+
+    This view provides document search functionality with the following features:
+    - MongoDB integration for document storage
+    - Semantic search using RAG system
+    - Random document retrieval when no query is provided
+
+    Attributes:
+        permission_classes (list): Requires user authentication
     """
 
     permission_classes = [IsAuthenticated]
 
     def __init__(self, *args, **kwargs):
+        """
+        Initialize MongoDB connection and RAG system.
+
+        Sets up the MongoDB client, database, and collection connections
+        required for document retrieval.
+        """
         super().__init__(*args, **kwargs)
         self.client = None
         self.db = None
@@ -246,7 +414,15 @@ class DocumentSearchView(BaseAPIView):
         self.initialize_mongodb()
 
     def initialize_mongodb(self):
-        """Initialize MongoDB connection with error handling"""
+        """
+        Initialize MongoDB connection with error handling.
+
+        Establishes connection to MongoDB using environment variables
+        and sets up the database and collection references.
+
+        Raises:
+            APIException: If MongoDB connection fails
+        """
         try:
             connection_string = os.getenv("MONGO_CONNECTION_STRING")
             if not connection_string:
@@ -260,58 +436,56 @@ class DocumentSearchView(BaseAPIView):
             self.db.command("ping")
             logger.info("Successfully connected to MongoDB")
         except Exception as e:
-            logger.error(f"Failed to initialize MongoDB: {str(e)}")
-            raise
+            logger.error(f"Failed to initialize MongoDB: {e}")
+            raise APIException("Failed to connect to document database")
 
     def get_document_details(self, object_ids):
-        """Fetch document details from MongoDB"""
-        try:
-            documents = list(
-                self.collection.find(
-                    {"_id": {"$in": object_ids}},
-                    {
-                        "_id": 1,
-                        "title": 1,
-                        "summary": 1,
-                        "url": 1,
-                        "date_posted": 1,
-                        "category": 1,
-                    },
-                )
-            )
-            logger.info(f"Retrieved {len(documents)} documents from MongoDB")
-            return documents
-        except Exception as e:
-            logger.error(f"Error fetching documents from MongoDB: {str(e)}")
-            raise
+        """
+        Fetch document details from MongoDB.
 
-    def get_random_documents(self, size=6):
-        """Get random documents when no query is provided"""
+        Args:
+            object_ids (list): List of MongoDB ObjectIds to retrieve
+
+        Returns:
+            list: List of document details including metadata
+        """
         try:
             return list(
-                self.collection.aggregate(
-                    [
-                        {"$match": {"summary": {"$exists": True}}},
-                        {"$sample": {"size": size}},
-                        {
-                            "$project": {
-                                "_id": 1,
-                                "title": 1,
-                                "summary": 1,
-                                "url": 1,
-                                "date_posted": 1,
-                                "category": 1,
-                            }
-                        },
-                    ]
-                )
+                self.collection.find({"_id": {"$in": object_ids}})
             )
         except Exception as e:
-            logger.error(f"Error fetching random documents: {str(e)}")
-            raise
+            logger.error(f"Error fetching document details: {e}")
+            return []
+
+    def get_random_documents(self, size=6):
+        """
+        Get random documents when no query is provided.
+
+        Args:
+            size (int): Number of random documents to retrieve
+
+        Returns:
+            list: List of random documents
+        """
+        try:
+            return list(self.collection.aggregate([{"$sample": {"size": size}}]))
+        except Exception as e:
+            logger.error(f"Error fetching random documents: {e}")
+            return []
 
     def format_results(self, documents):
-        """Format documents for response"""
+        """
+        Format documents for response.
+
+        Transforms MongoDB documents into a consistent format with
+        proper ID handling and metadata organization.
+
+        Args:
+            documents (list): Raw documents from MongoDB
+
+        Returns:
+            list: Formatted document list for API response
+        """
         return [
             {
                 "id": str(doc["_id"]),
@@ -325,7 +499,19 @@ class DocumentSearchView(BaseAPIView):
         ]
 
     def get(self, request, *args, **kwargs):
-        """Handle GET requests for document search"""
+        """
+        Handle GET requests for document search.
+
+        Supports two modes:
+        1. Query-based search using RAG system
+        2. Random document retrieval when no query provided
+
+        Args:
+            request: HTTP request with optional 'query' parameter
+
+        Returns:
+            Response: List of documents matching the query or random documents
+        """
         try:
             query = request.query_params.get("query", "")
             logger.info(f"Processing search request. Query: '{query}'")

@@ -1,3 +1,13 @@
+"""
+WebSocket consumer for handling real-time chat communication.
+
+This module implements the WebSocket consumer that handles:
+- Real-time chat message processing
+- Authentication and session validation
+- Message streaming using the RAG system
+- Chat history persistence
+"""
+
 import json
 import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -10,7 +20,31 @@ import asyncio
 logger = logging.getLogger(__name__)
 
 class ChatConsumer(AsyncWebsocketConsumer):
+    """
+    WebSocket consumer for handling chat messages.
+
+    Handles WebSocket lifecycle (connect, receive, disconnect) and manages
+    chat message processing with the RAG system. Includes authentication,
+    session validation, and error handling.
+
+    Attributes:
+        user: The authenticated user for this connection
+        session_id: UUID of the chat session
+    """
+
     async def connect(self):
+        """
+        Handles WebSocket connection requests.
+
+        Validates user authentication and session ownership before accepting
+        the connection. Closes connection with appropriate error codes if
+        validation fails.
+
+        Error Codes:
+            4001: Unauthenticated user
+            4004: Invalid session access
+            4000: General connection error
+        """
         try:
             # Authentication check
             if not self.scope["user"].is_authenticated:
@@ -42,10 +76,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4000)
 
     async def disconnect(self, close_code):
+        """
+        Handles WebSocket disconnection.
+
+        Args:
+            close_code: The code indicating why the connection was closed
+        """
         logger.info(f"WebSocket disconnected: session={self.session_id}, code={close_code}")
 
     async def send_error(self, message, code=None):
-        """Helper method to send error messages"""
+        """
+        Sends an error message to the client.
+
+        Args:
+            message (str): Human-readable error message
+            code (str, optional): Error code for client-side handling
+        """
         await self.send(text_data=json.dumps({
             "type": "error",
             "message": message,
@@ -53,6 +99,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def receive(self, text_data):
+        """
+        Processes incoming WebSocket messages.
+
+        Handles the complete lifecycle of a chat message:
+        1. Message parsing and validation
+        2. Session retrieval and validation
+        3. RAG system processing with streaming response
+        4. Message persistence in database
+
+        Error Codes:
+            INVALID_FORMAT: Message parsing failed
+            SESSION_NOT_FOUND: Chat session not found
+            DATABASE_ERROR: Database operation failed
+            SAVE_ERROR: Failed to save chat messages
+            SYSTEM_ERROR: Unexpected system error
+
+        Args:
+            text_data (str): JSON string containing the message
+        """
         try:
             # Parse message
             try:

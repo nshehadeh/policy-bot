@@ -320,4 +320,8 @@ class RAGSystem:
             return results
         except Exception as e:
             logger.error(f"Error in search query: {str(e)}")
-            return []  # Fallback to empty results
+            # Empty fallback
+            return []
+
+    def load_memory(self, chat_history: ChatMessageHistory):
+        self.generator.update_chat_history(chat_history)

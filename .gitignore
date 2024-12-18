@@ -7,4 +7,5 @@
 # Pycache
 __pycache__/
 
-.rdb
+# Redis dump files
+*.rdb

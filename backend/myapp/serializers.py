@@ -1,3 +1,14 @@
+"""
+Serializers for the Policy Bot API.
+
+This module defines the serializers used to convert complex data types to Python datatypes
+
+Key components:
+- User management serializers (creation and settings updates)
+- Chat session serializers (creation, updates, and listing)
+- Chat message serializer for handling streaming responses
+"""
+
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import ChatSession
@@ -7,10 +18,16 @@ class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for creating and managing User instances.
 
-    Meta:
-        model (Model): The User model that this serializer maps to.
-        fields (tuple): The fields to include in the serialization.
-        extra_kwargs (dict): Extra keyword arguments for specific fields (e.g., making the password write-only).
+    This serializer handles user registration and profile management.
+    The password field is write-only for security.
+
+    Fields:
+        id (int): User's unique identifier
+        username (str): User's login name
+        email (str): User's email address
+        first_name (str): User's first name
+        last_name (str): User's last name
+        password (str): User's password (write-only)
     """
 
     class Meta:
@@ -24,11 +41,13 @@ class UserSerializer(serializers.ModelSerializer):
         """
         Creates a new User instance with the validated data.
 
+        Uses Django's create_user method to properly hash the password.
+
         Args:
             validated_data (dict): The validated data from the serializer.
 
         Returns:
-            User: The created User instance.
+            User: The created User instance with hashed password.
         """
         user = User.objects.create_user(**validated_data)
         return user
@@ -38,9 +57,12 @@ class UpdateSettingsSerializer(serializers.ModelSerializer):
     """
     Serializer for updating User profile settings.
 
-    Meta:
-        model (Model): The User model that this serializer maps to.
-        fields (list): The fields to include in the serialization, specifically for updating first and last name.
+    This serializer is specifically for updating user profile information,
+    currently supporting first and last name updates.
+
+    Fields:
+        first_name (str): User's first name
+        last_name (str): User's last name
     """
 
     class Meta:
@@ -52,11 +74,18 @@ class ChatMessageSerializer(serializers.Serializer):
     """
     Serializer for handling chat messages in a streaming context.
 
-    Attributes:
-        message (CharField): The user message, optional for input.
-        session_id (UUIDField): The session ID, optional for input.
-        response (CharField): The AI response, read-only, used for non-streaming responses.
-        is_streaming (BooleanField): Indicates if the response is streamed, read-only.
+    This serializer handles both incoming chat messages and outgoing
+    streaming responses. It supports two modes:
+    1. New message mode: User sends a new message
+    2. History mode: Loading previous messages by session ID
+
+    Fields:
+        message (str, optional): The user's input message
+        session_id (UUID, optional): Chat session identifier
+        response (str): AI system's response (read-only)
+
+    Note:
+        Either message or session_id must be provided for valid input.
     """
 
     # Input fields
@@ -68,7 +97,16 @@ class ChatMessageSerializer(serializers.Serializer):
 
     def validate(self, data):
         """
-        Check that at least one of message or session_id is provided.
+        Validates that either message or session_id is provided.
+
+        Args:
+            data (dict): The input data to validate
+
+        Returns:
+            dict: The validated data
+
+        Raises:
+            ValidationError: If neither message nor session_id is provided
         """
         if not data.get("message") and not data.get("session_id"):
             raise serializers.ValidationError(
@@ -78,12 +116,32 @@ class ChatMessageSerializer(serializers.Serializer):
 
 
 class ChatSessionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for displaying chat session information.
+
+    Used for listing chat sessions and showing their basic details.
+
+    Fields:
+        session_id (UUID): Unique identifier for the chat session
+        created_at (datetime): When the session was created
+        name (str): Display name for the chat session
+    """
+
     class Meta:
         model = ChatSession
         fields = ["session_id", "created_at", "name"]
 
 
 class ChatSessionUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating chat session details.
+
+    Currently supports updating the display name of a chat session.
+
+    Fields:
+        name (str): New display name for the chat session
+    """
+
     class Meta:
         model = ChatSession
         fields = ["name"]

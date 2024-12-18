@@ -77,7 +77,7 @@ function Chat({ token }) {
 
       websocket.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.status === "complete") return;
+        if (data.type === "complete") return;
         aiMessageRef.current += ` ${data.chunk}`;
         console.log(data.chunk);
 
