@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import ChatSessionItem from "./ChatSessionItem";
 import DocumentSearch from "../DocumentSearch/DocumentSearch";
 import api from "../../services/api";
 import "./Chat.css";
@@ -18,7 +17,6 @@ function Chat({ token }) {
   const [newChatName, setNewChatName] = useState("");
   const websocket = useRef(null);
   const aiMessageRef = useRef("");
-  const messagesEndRef = useRef(null);
   const chatMessagesRef = useRef(null);
   const chatHistoryRef = useRef(null);
 

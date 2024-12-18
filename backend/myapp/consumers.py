@@ -56,7 +56,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 {"status": "complete", "message": "Streaming finished"}
             )
         )
-        # After sending the full response via WebSocket
+        # After sending the full response via WebSocket, update db
         await sync_to_async(ChatMessage.objects.create)(
             session=chat_session, role="human", content=query
         )
