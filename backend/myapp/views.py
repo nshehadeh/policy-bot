@@ -11,13 +11,14 @@ Key components:
 - Error handling and logging
 """
 
-from django.shortcuts import render
-from django.contrib.auth import get_user_model
-from pymongo.database import Database
+from typing import List, Dict, Any
+from uuid import UUID
+from pymongo.mongo_client import MongoClient
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework import status
+from rest_framework.request import Request
 from .serializers import (
     ChatSessionSerializer,
     ChatSessionUpdateSerializer,
@@ -29,13 +30,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
 from .models import ChatSession, ChatMessage
 from django.contrib.auth.models import User
+from bson import ObjectId
 from langchain_community.chat_message_histories import ChatMessageHistory
 from django.shortcuts import get_object_or_404
 import json
 from pymongo import MongoClient
 from django.conf import settings
 import os
-from bson import ObjectId
 from django.db import DatabaseError
 import logging
 
@@ -56,18 +57,18 @@ class BaseAPIView(APIView):
         handle_unexpected_error: Handles unexpected exceptions
     """
 
-    def handle_database_error(self, e: DatabaseError, operation: str) -> Response:
+    def handle_database_error(self, e: Exception, operation: str) -> Response:
         """
         Handle database-related errors with consistent logging and response format.
 
         Args:
-            e (DatabaseError): The database error that occurred
+            e (Exception): The database error that occurred
             operation (str): Description of the operation that failed
 
         Returns:
             Response: A 500 response with error details
         """
-        logger.error(f"Database error in {operation}: {e}")
+        logger.error(f"Database error in {operation}: {str(e)}")
         return Response(
             {"error": f"Database error while {operation}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -98,7 +99,7 @@ class BaseAPIView(APIView):
         Raises:
             APIException: Always raised with error details
         """
-        logger.error(f"Unexpected error in {operation}: {e}")
+        logger.error(f"Unexpected error in {operation}: {str(e)}")
         raise APIException(f"Unexpected error while {operation}")
 
 
@@ -130,7 +131,7 @@ class ChatView(BaseAPIView):
     
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Create a new chat session for the authenticated user.
 
@@ -162,7 +163,7 @@ class ChatSessionView(BaseAPIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get_chat_session(self, session_id):
+    def get_chat_session(self, session_id: UUID) -> ChatSession:
         """
         Retrieve a chat session for the current user.
 
@@ -179,7 +180,9 @@ class ChatSessionView(BaseAPIView):
             ChatSession, session_id=session_id, user=self.request.user
         )
 
-    def patch(self, request, session_id, *args, **kwargs):
+    def patch(
+        self, request: Request, session_id: UUID, *args: Any, **kwargs: Any
+    ) -> Response:
         """
         Update a chat session's details
 
@@ -207,7 +210,9 @@ class ChatSessionView(BaseAPIView):
         except Exception as e:
             self.handle_unexpected_error(e, "updating chat session")
 
-    def delete(self, request, session_id, *args, **kwargs):
+    def delete(
+        self, request: Request, session_id: UUID, *args: Any, **kwargs: Any
+    ) -> Response:
         """
         Delete a chat session.
 
@@ -243,7 +248,7 @@ class LoadPreviousChatView(BaseAPIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Retrieve all chat sessions for the current user.
 
@@ -263,7 +268,7 @@ class LoadPreviousChatView(BaseAPIView):
         except Exception as e:
             self.handle_unexpected_error(e, "fetching chat sessions")
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Load messages from a specific chat session and load chat history.
 
@@ -333,7 +338,7 @@ class UserSettingsView(BaseAPIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Retrieve user settings.
 
@@ -356,7 +361,7 @@ class UserSettingsView(BaseAPIView):
         except Exception as e:
             self.handle_unexpected_error(e, "retrieving user settings")
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Update user settings.
 
@@ -400,7 +405,7 @@ class DocumentSearchView(BaseAPIView):
 
     permission_classes = [IsAuthenticated]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """
         Initialize MongoDB connection and RAG system.
 
@@ -413,7 +418,7 @@ class DocumentSearchView(BaseAPIView):
         self.collection = None
         self.initialize_mongodb()
 
-    def initialize_mongodb(self):
+    def initialize_mongodb(self) -> None:
         """
         Initialize MongoDB connection with error handling.
 
@@ -439,7 +444,7 @@ class DocumentSearchView(BaseAPIView):
             logger.error(f"Failed to initialize MongoDB: {e}")
             raise APIException("Failed to connect to document database")
 
-    def get_document_details(self, object_ids):
+    def get_document_details(self, object_ids: List[ObjectId]) -> List[Dict[str,Any]]:
         """
         Fetch document details from MongoDB.
 
@@ -457,7 +462,7 @@ class DocumentSearchView(BaseAPIView):
             logger.error(f"Error fetching document details: {e}")
             return []
 
-    def get_random_documents(self, size=6):
+    def get_random_documents(self, size: int = 6) -> List[Dict[str, Any]]:
         """
         Get random documents when no query is provided.
 
@@ -473,7 +478,7 @@ class DocumentSearchView(BaseAPIView):
             logger.error(f"Error fetching random documents: {e}")
             return []
 
-    def format_results(self, documents):
+    def format_results(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Format documents for response.
 
@@ -498,7 +503,7 @@ class DocumentSearchView(BaseAPIView):
             for doc in documents
         ]
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Handle GET requests for document search.
 

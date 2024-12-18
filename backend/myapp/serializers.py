@@ -9,6 +9,7 @@ Key components:
 - Chat message serializer for handling streaming responses
 """
 
+from typing import Dict, Any
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import ChatSession
@@ -37,7 +38,7 @@ class UserSerializer(serializers.ModelSerializer):
             "password": {"write_only": True},
         }
 
-    def create(self, validated_data):
+    def create(self, validated_data: Dict[str, Any]) -> User:
         """
         Creates a new User instance with the validated data.
 
@@ -88,29 +89,26 @@ class ChatMessageSerializer(serializers.Serializer):
         Either message or session_id must be provided for valid input.
     """
 
-    # Input fields
     message = serializers.CharField(required=False, write_only=True)
     session_id = serializers.UUIDField(required=False)
-
-    # Output fields
     response = serializers.CharField(read_only=True)
 
-    def validate(self, data):
+    def validate(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Validates that either message or session_id is provided.
 
         Args:
-            data (dict): The input data to validate
+            data: The data to validate
 
         Returns:
-            dict: The validated data
+            The validated data
 
         Raises:
             ValidationError: If neither message nor session_id is provided
         """
         if not data.get("message") and not data.get("session_id"):
             raise serializers.ValidationError(
-                "Either 'message' or 'session_id' must be provided."
+                "Either message or session_id must be provided"
             )
         return data
 

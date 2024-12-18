@@ -63,18 +63,17 @@ class PineconeVectorStoreModel(BaseVectorStore):
         self._validate_embedding_compatibility(embeddings)
         super().__init__(embeddings)
 
-    # Usless for now
-    def _validate_embedding_compatibility(self, embedding):
+    def _validate_embedding_compatibility(self, embedding: OpenAIEmbeddings) -> bool:
         return embedding.model == self.embeddings.model
 
-    def get_vector_store(self):
+    def get_vector_store(self) -> PineconeVectorStore:
         return PineconeVectorStore(
             index_name=self.index_name, embedding=self.embeddings
         )
 
 
 class QAPromptTemplate(BasePromptTemplate):
-    def get_prompt_template(self):
+    def get_prompt_template(self) -> ChatPromptTemplate:
         system_prompt = (
             "You are an assistant for question-answering tasks. "
             "Use the following pieces of retrieved context to answer "
@@ -96,7 +95,7 @@ class QAPromptTemplate(BasePromptTemplate):
 
 
 class ContextPromptTemplate(BasePromptTemplate):
-    def get_prompt_template(self):
+    def get_prompt_template(self) -> ChatPromptTemplate:
         contextualize_q_system_prompt = (
             "Given a chat history and the latest user question "
             "which might reference context in the chat history, "
@@ -116,7 +115,7 @@ class ContextPromptTemplate(BasePromptTemplate):
 
 
 class QuerySearchPromptTemplate(BasePromptTemplate):
-    def get_prompt_template(self):
+    def get_prompt_template(self) -> PromptTemplate:
         template = """You are an expert at expanding search queries to find relevant policy documents. 
             Given a simple query, expand it into a detailed search query that would help find relevant policy documents.
             Focus on including:
@@ -142,7 +141,7 @@ class Generator:
         qa_prompt_template,
         context_q_prompt_template,
         chat_history: ChatMessageHistory,
-    ):
+    ) -> None:
         self.llm = llm
         self.retriever = retriever
         self.qa_prompt = qa_prompt_template
@@ -179,10 +178,10 @@ class Generator:
                 yield chunk["answer"]
                 await asyncio.sleep(0.1)
 
-    def update_chat_history(self, new_chat_history: ChatMessageHistory):
+    def update_chat_history(self, new_chat_history: ChatMessageHistory) -> None:
         self.chat_history = new_chat_history
 
-    def get_session_history(self):
+    def get_session_history(self) -> ChatMessageHistory:
         return self.chat_history
 
 
@@ -214,24 +213,6 @@ class Search:
             return []
 
 
-# RAG System error classes
-class RAGSystemError(Exception):
-    """Base exception for RAG system errors"""
-    pass
-
-class OpenAIError(RAGSystemError):
-    """Raised when there's an error with OpenAI API calls"""
-    pass
-
-class DocumentRetrievalError(RAGSystemError):
-    """Raised when there's an error retrieving documents"""
-    pass
-
-class EmbeddingError(RAGSystemError):
-    """Raised when there's an error generating embeddings"""
-    pass
-
-
 # Singleton RAGSystem
 class RAGSystem:
     _instance = None
@@ -251,7 +232,7 @@ class RAGSystem:
         vector_store: Optional[BaseVectorStore] = None,
         prompt_template: Optional[BasePromptTemplate] = None,
         chat_history: ChatMessageHistory = ChatMessageHistory(),
-    ):
+    ) -> None:
         if not hasattr(self, "_initialized"):
             load_dotenv()
             self._load_environment_variables()
@@ -295,7 +276,8 @@ class RAGSystem:
             os.environ["LANGCHAIN_TRACING_V2"] = "true"
         os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
 
-    def update_llm(self, model: BaseModel):
+    def update_llm(self, model: BaseModel) -> None:
+        """Update the language model."""
         self.llm = model.get_model()
         self.generator.llm = self.llm
 
@@ -323,5 +305,6 @@ class RAGSystem:
             # Empty fallback
             return []
 
-    def load_memory(self, chat_history: ChatMessageHistory):
+    def load_memory(self, chat_history: ChatMessageHistory) -> None:
+        """Load chat history into memory."""
         self.generator.update_chat_history(chat_history)

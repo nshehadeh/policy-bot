@@ -5,6 +5,7 @@ This module defines the database schema for chat-related functionality,
 including chat sessions and messages.
 """
 
+from typing import Any, Optional
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
@@ -23,7 +24,6 @@ class ChatSession(models.Model):
         session_id (UUID): Unique identifier for the session
         created_at (datetime): When the session was created
         name (str): Optional display name for the session
-
     """
 
     user = models.ForeignKey(
@@ -35,7 +35,7 @@ class ChatSession(models.Model):
     created_at = models.DateTimeField(auto_now=True)
     name = models.CharField(max_length=255, blank=True)
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         """
         Saves the chat session, setting a default name if none provided.
 
@@ -49,7 +49,7 @@ class ChatSession(models.Model):
             self.name = f"Chat on {timezone.now().strftime('%Y-%m-%d @ %H:%M')}"
         super().save(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Returns a string representation of the chat session.
 
@@ -84,7 +84,7 @@ class ChatMessage(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Returns a string representation of the message.
 

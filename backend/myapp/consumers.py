@@ -32,7 +32,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         session_id: UUID of the chat session
     """
 
-    async def connect(self):
+    async def connect(self) -> None:
         """
         Handles WebSocket connection requests.
 
@@ -75,7 +75,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             logger.error(f"Connection error: {str(e)}")
             await self.close(code=4000)
 
-    async def disconnect(self, close_code):
+    async def disconnect(self, close_code: int) -> None:
         """
         Handles WebSocket disconnection.
 
@@ -84,7 +84,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """
         logger.info(f"WebSocket disconnected: session={self.session_id}, code={close_code}")
 
-    async def send_error(self, message, code=None):
+    async def send_error(self, message, code=None) -> None:
         """
         Sends an error message to the client.
 
@@ -98,7 +98,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "code": code
         }))
 
-    async def receive(self, text_data):
+    async def receive(self, text_data) -> None:
         """
         Processes incoming WebSocket messages.
 
@@ -163,7 +163,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }))
                 logger.info(f"Message finished successfully: session={self.session_id}")
 
-
                 # Save messages
                 try:
                     await sync_to_async(ChatMessage.objects.create)(
@@ -182,7 +181,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     logger.error(f"Failed to save chat messages: {str(e)}")
                     await self.send_error("Failed to save messages", "SAVE_ERROR")
                     return
-
 
             except asyncio.CancelledError:
                 logger.info(f"Client cancelled request: session={self.session_id}")
