@@ -9,6 +9,14 @@ The project uses a Django backend and React frontend. The Django backend uses Dj
 To setup:
 - Clone this branch for aviary demo
 - Create a conda environment in backend/ with conda env create -f environment.yml
+- Create a envs file in backend/ containing:
+    MONGO_CONNECTION_STRING=
+    OPENAI_API_KEY=
+    LANGSMITH_API_KEY=
+    INECONE_API_KEY=
+    PSQL_DB_NAME= 
+    USER=
+    PASSWORD=
 - Run python manage.py makemigrations and python manage.py migrate
 - Run yarn install in frontend/
 

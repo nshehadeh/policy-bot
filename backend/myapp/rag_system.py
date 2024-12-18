@@ -12,7 +12,9 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from time import sleep
 import asyncio
 from typing import Optional
+import logging
 
+logger = logging.getLogger(__name__)
 
 # Abstract base classes
 class BaseModel:
@@ -212,6 +214,24 @@ class Search:
             return []
 
 
+# RAG System error classes
+class RAGSystemError(Exception):
+    """Base exception for RAG system errors"""
+    pass
+
+class OpenAIError(RAGSystemError):
+    """Raised when there's an error with OpenAI API calls"""
+    pass
+
+class DocumentRetrievalError(RAGSystemError):
+    """Raised when there's an error retrieving documents"""
+    pass
+
+class EmbeddingError(RAGSystemError):
+    """Raised when there's an error generating embeddings"""
+    pass
+
+
 # Singleton RAGSystem
 class RAGSystem:
     _instance = None
@@ -281,11 +301,23 @@ class RAGSystem:
 
     async def handle_chat_query(self, question):
         """Handle chat-based queries using the generator for streaming responses."""
-        async for generated_chunk in self.generator.invoke_async(question):
-            yield generated_chunk
+        try:
+            logger.info("Processing chat query")
+            async for generated_chunk in self.generator.invoke_async(question):
+                yield generated_chunk
+            logger.info("Successfully completed chat query")
+        except Exception as e:
+            logger.error(f"Error in chat query processing: {str(e)}")
+            # Fallback response
+            yield "I apologize, but I'm having trouble processing your request right now. Please try again."
 
     def handle_search_query(self, question):
-        return self.search.invoke(question)
-
-    def load_memory(self, chat_history: ChatMessageHistory):
-        self.generator.update_chat_history(chat_history)
+        """Handle search queries with error handling and fallback"""
+        try:
+            logger.info("Processing search query")
+            results = self.search.invoke(question)
+            logger.info(f"Search completed successfully with {len(results)} results")
+            return results
+        except Exception as e:
+            logger.error(f"Error in search query: {str(e)}")
+            return []  # Fallback to empty results
