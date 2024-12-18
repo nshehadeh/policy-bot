@@ -122,8 +122,6 @@ def scrape_article(url):
         'content': content,
         'url':url
     }
-
-
 def scrape_briefing_room() -> int:
     page_number = 1
     max_workers = 10
@@ -132,54 +130,41 @@ def scrape_briefing_room() -> int:
         pbar = tqdm(total=0, desc="Pages Scraped", dynamic_ncols=True, bar_format='{desc}: {n}')
         future_to_page = {}
         processed_pages = set()
-
         # Submit the initial batch of pages
         for i in range(max_workers):
             future = executor.submit(scrape_page, page_number)
             future_to_page[future] = page_number
             processed_pages.add(page_number)
-            page_number += 1
-            
+            page_number += 1       
         # Continue batching pages until no pages are left
         while future_to_page:
             for future in concurrent.futures.as_completed(future_to_page):
                 # Save page_num for printing & error purposes
-                page_num = future_to_page.pop(future)
-                
+                page_num = future_to_page.pop(future)       
                 try:
                     links = future.result()
                     if links:
                         # Resulting links from the page
-                        res += len(links)
-                                                
+                        res += len(links)                                    
                         # Scrape article from each article link and insert into the database
                         for link in links:
                             article_details = scrape_article(link)
                             insert_article(article_details)
-
                         # Submit the next page for scraping
                         if page_number not in processed_pages:
                             future = executor.submit(scrape_page, page_number)
                             future_to_page[future] = page_number
                             page_number += 1
-                        
-                                        # Update the progress bar
                         pbar.update(1)
                     else:
-                        # print(f"No more articles found at page {page_num}. Stopping.")
-                        # Exit while loop
-                        break
-                    
+                        break    
                 except Exception as e:
-                    print(f"Error scraping page {page_num}: {e}")
-                
-        pbar.close()
-        
+                    print(f"Error scraping page {page_num}: {e}")          
+        pbar.close() 
     return res
 
 if __name__ == "__main__":
     # Print num of URLS visited just to check
     visited = scrape_briefing_room()
-    print(f"Scraping done with {visited} urls visited")
-    
+    print(f"Scraping done with {visited} urls visited")    
 

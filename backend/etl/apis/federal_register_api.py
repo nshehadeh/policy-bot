@@ -1,6 +1,5 @@
 import requests
 from pymongo import MongoClient
-from datetime import datetime, timedelta
 import logging
 import os
 from dotenv import load_dotenv

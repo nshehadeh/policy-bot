@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 import uuid
 from django.utils import timezone
 
+
 class ChatSession(models.Model):
     """
     Model representing a chat session.
@@ -13,9 +14,12 @@ class ChatSession(models.Model):
         created_at (DateTimeField): The timestamp when the session was created, automatically set to the current date and time.
         name (CharField): Optional name for the chat for display (otherwise use overriden save)
     """
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="chat_sessions")
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="chat_sessions"
+    )
     session_id = models.UUIDField(default=uuid.uuid4, editable=False)
-    created_at = models.DateTimeField(auto_now=True) 
+    created_at = models.DateTimeField(auto_now=True)
     name = models.CharField(max_length=255, blank=True)
 
     # Sets default name
@@ -23,7 +27,6 @@ class ChatSession(models.Model):
         if not self.name:
             self.name = f"Chat on {timezone.now().strftime('%Y-%m-%d @ %H:%M')}"
         super().save(*args, **kwargs)
-
 
     def __str__(self):
         """
@@ -33,6 +36,7 @@ class ChatSession(models.Model):
             str: A string displaying the session ID and the username of the user who owns the session.
         """
         return f"Session {self.session_id} for {self.user.username}"
+
 
 class ChatMessage(models.Model):
     """
@@ -44,8 +48,11 @@ class ChatMessage(models.Model):
         content (TextField): The actual content of the message.
         created_at (DateTimeField): The timestamp when the message was created, automatically set to the time of message creation.
     """
-    session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name="messages")
-    role = models.CharField(max_length=10, choices=[('human', 'Human'), ('ai', 'AI')])
+
+    session = models.ForeignKey(
+        ChatSession, on_delete=models.CASCADE, related_name="messages"
+    )
+    role = models.CharField(max_length=10, choices=[("human", "Human"), ("ai", "AI")])
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 

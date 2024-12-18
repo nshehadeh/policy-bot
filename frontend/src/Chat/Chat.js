@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ChatSessionItem from './ChatSessionItem';
-import DocumentSearch from './DocumentSearch';
-import api from './api';
+import DocumentSearch from '../components/DocumentSearch';
+import api from '../../api';
 import './Chat.css';
 
 function Chat({ token }) {

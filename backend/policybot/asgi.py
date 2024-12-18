@@ -13,16 +13,14 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from myapp import routing
 import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'policybot.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "policybot.settings")
 django.setup()
 
-from myapp.middleware import TokenAuthMiddleware 
+from myapp.middleware import TokenAuthMiddleware
 
-application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
-    "websocket": TokenAuthMiddleware(
-        URLRouter(
-            routing.websocket_urlpatterns
-        )
-    ),
-})
+application = ProtocolTypeRouter(
+    {
+        "http": get_asgi_application(),
+        "websocket": TokenAuthMiddleware(URLRouter(routing.websocket_urlpatterns)),
+    }
+)

@@ -1,9 +1,9 @@
 // App.js
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Login from './Login';
-import Chat from './Chat';
-import Register from './Register'
+import Login from './components/Auth/Login';
+import Chat from './components/Chat/Chat';
+import Register from './components/Auth/Register'
 import './App.css';
 
 function App() {

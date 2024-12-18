@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import ChatSession
 
+
 class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for creating and managing User instances.
@@ -14,9 +15,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'password')
+        fields = ("id", "username", "email", "first_name", "last_name", "password")
         extra_kwargs = {
-            'password': {'write_only': True},
+            "password": {"write_only": True},
         }
 
     def create(self, validated_data):
@@ -32,6 +33,7 @@ class UserSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
+
 class UpdateSettingsSerializer(serializers.ModelSerializer):
     """
     Serializer for updating User profile settings.
@@ -43,7 +45,8 @@ class UpdateSettingsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name']
+        fields = ["first_name", "last_name"]
+
 
 class ChatMessageSerializer(serializers.Serializer):
     """
@@ -67,16 +70,20 @@ class ChatMessageSerializer(serializers.Serializer):
         """
         Check that at least one of message or session_id is provided.
         """
-        if not data.get('message') and not data.get('session_id'):
-            raise serializers.ValidationError("Either 'message' or 'session_id' must be provided.")
+        if not data.get("message") and not data.get("session_id"):
+            raise serializers.ValidationError(
+                "Either 'message' or 'session_id' must be provided."
+            )
         return data
+
 
 class ChatSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSession
-        fields = ['session_id', 'created_at', 'name']
+        fields = ["session_id", "created_at", "name"]
+
 
 class ChatSessionUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSession
-        fields = ['name']
+        fields = ["name"]
