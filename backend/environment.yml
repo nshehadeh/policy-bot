@@ -1,4 +1,4 @@
-name: WTP
+name: policyai
 channels:
   - defaults
   - conda-forge
