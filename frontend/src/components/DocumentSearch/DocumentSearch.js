@@ -12,21 +12,24 @@ const DocumentSearch = ({ token }) => {
   const initialFetchDone = useRef(false);
 
   // Fetch documents from the API based on search query
-  const fetchDocuments = useCallback(async (searchQuery) => {
-    setLoading(true);
-    try {
-      const response = await api.get(
-        `/search/?query=${encodeURIComponent(searchQuery)}`,
-        {
-          headers: { Authorization: `Token ${token}` },
-        }
-      );
-      setResults(response.data.results || []); // Update results, default to empty array if null
-    } catch (error) {
-      console.error("Error fetching documents:", error);
-    }
-    setLoading(false);
-  }, [token]);
+  const fetchDocuments = useCallback(
+    async (searchQuery) => {
+      setLoading(true);
+      try {
+        const response = await api.get(
+          `/search/?query=${encodeURIComponent(searchQuery)}`,
+          {
+            headers: { Authorization: `Token ${token}` },
+          }
+        );
+        setResults(response.data.results || []); // Update results, default to empty array if null
+      } catch (error) {
+        console.error("Error fetching documents:", error);
+      }
+      setLoading(false);
+    },
+    [token]
+  );
 
   // Load initial documents when component mounts
   useEffect(() => {

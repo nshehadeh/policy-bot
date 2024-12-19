@@ -33,9 +33,7 @@ from django.contrib.auth.models import User
 from bson import ObjectId
 from langchain_community.chat_message_histories import ChatMessageHistory
 from django.shortcuts import get_object_or_404
-import json
 from pymongo import MongoClient
-from django.conf import settings
 import os
 from django.db import DatabaseError
 import logging
@@ -46,7 +44,7 @@ logger = logging.getLogger(__name__)
 class BaseAPIView(APIView):
     """
     Base API view with common error handling functionality.
-    
+
     This class provides standardized error handling methods for database operations,
     validation, and unexpected errors. All API views should inherit from this class
     to maintain consistent error handling across the application.
@@ -128,7 +126,7 @@ class ChatView(BaseAPIView):
     Attributes:
         permission_classes (list): Requires user authentication
     """
-    
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
@@ -444,7 +442,7 @@ class DocumentSearchView(BaseAPIView):
             logger.error(f"Failed to initialize MongoDB: {e}")
             raise APIException("Failed to connect to document database")
 
-    def get_document_details(self, object_ids: List[ObjectId]) -> List[Dict[str,Any]]:
+    def get_document_details(self, object_ids: List[ObjectId]) -> List[Dict[str, Any]]:
         """
         Fetch document details from MongoDB.
 
@@ -455,9 +453,7 @@ class DocumentSearchView(BaseAPIView):
             list: List of document details including metadata
         """
         try:
-            return list(
-                self.collection.find({"_id": {"$in": object_ids}})
-            )
+            return list(self.collection.find({"_id": {"$in": object_ids}}))
         except Exception as e:
             logger.error(f"Error fetching document details: {e}")
             return []

@@ -147,7 +147,7 @@ function Chat({ token }) {
     // Add user message to chat history
     aiMessageRef.current = "";
     setHistory((prev) => [...prev, { role: "human", content: message }]);
-    
+
     // Send message through WebSocket if connection is open
     if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
       websocket.current.send(
@@ -176,7 +176,7 @@ function Chat({ token }) {
 
       setHistory([]);
       setCurrentSessionId(res.data.session_id);
-      
+
       // Handle initial message if provided
       if (data.message) {
         setHistory([{ role: "human", content: message }]);
@@ -192,7 +192,7 @@ function Chat({ token }) {
         }
         setMessage("");
       }
-      
+
       // Refresh chat sessions list
       const sessionsRes = await api.get("/chat/sessions/", {
         headers: { Authorization: `Token ${token}` },
@@ -518,15 +518,15 @@ function Chat({ token }) {
                 Save
               </button>
             ) : (
-                <button
+              <button
                 className="edit-button"
-                  onClick={() => setIsEditingSettings(true)}
-                >
-                  Edit
-                </button>
-              )}
-            </div>
+                onClick={() => setIsEditingSettings(true)}
+              >
+                Edit
+              </button>
+            )}
           </div>
+        </div>
       )}
     </div>
   );

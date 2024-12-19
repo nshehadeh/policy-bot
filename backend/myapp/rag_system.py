@@ -16,6 +16,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 # Abstract base classes
 class BaseModel:
     def get_model(self):

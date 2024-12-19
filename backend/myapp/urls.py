@@ -30,36 +30,37 @@ from .views import (
 
 urlpatterns = [
     # User Management Endpoints
-    path("users/", 
-         UserCreate.as_view(), 
-         name="user_create"  # Handles user registration
+    path(
+        "users/", UserCreate.as_view(), name="user_create"  # Handles user registration
     ),
-    path("user_settings/", 
-         UserSettingsView.as_view(), 
-         name="user_details"  # Manages user preferences and settings
+    path(
+        "user_settings/",
+        UserSettingsView.as_view(),
+        name="user_details",  # Manages user preferences and settings
     ),
-
     # Chat Session Management Endpoints
-    path("chat/new/", 
-         ChatView.as_view(), 
-         name="chat/new"  # Creates a new chat session
+    path(
+        "chat/new/", ChatView.as_view(), name="chat/new"  # Creates a new chat session
     ),
-    path("chat/sessions/", 
-         LoadPreviousChatView.as_view(), 
-         name="chat_sessions"  # Lists all chat sessions for the user
+    path(
+        "chat/sessions/",
+        LoadPreviousChatView.as_view(),
+        name="chat_sessions",  # Lists all chat sessions for the user
     ),
-    path("chat/load/", 
-         LoadPreviousChatView.as_view(), 
-         name="load_chat"  # Loads messages from a specific chat session
+    path(
+        "chat/load/",
+        LoadPreviousChatView.as_view(),
+        name="load_chat",  # Loads messages from a specific chat session
     ),
-    path("chat/sessions/<uuid:session_id>/",
-         ChatSessionView.as_view(),
-         name="chat-session-detail"  # Updates or deletes specific chat sessions
+    path(
+        "chat/sessions/<uuid:session_id>/",
+        ChatSessionView.as_view(),
+        name="chat-session-detail",  # Updates or deletes specific chat sessions
     ),
-
     # Document Search Endpoint
-    path("search/", 
-         DocumentSearchView.as_view(), 
-         name="document_search"  # Handles semantic search and document retrieval
+    path(
+        "search/",
+        DocumentSearchView.as_view(),
+        name="document_search",  # Handles semantic search and document retrieval
     ),
 ]

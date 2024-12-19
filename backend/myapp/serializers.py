@@ -70,6 +70,7 @@ class UpdateSettingsSerializer(serializers.ModelSerializer):
         model = User
         fields = ["first_name", "last_name"]
 
+
 class ChatSessionSerializer(serializers.ModelSerializer):
     """
     Serializer for displaying chat session information.

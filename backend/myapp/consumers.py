@@ -19,6 +19,7 @@ import asyncio
 
 logger = logging.getLogger(__name__)
 
+
 class ChatConsumer(AsyncWebsocketConsumer):
     """
     WebSocket consumer for handling chat messages.
@@ -62,23 +63,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.close(code=4000)
                 return
 
-            logging.info(f"WebSocket connection attempt: session={self.session_id}, user={self.user}")
-            
+            logging.info(
+                f"WebSocket connection attempt: session={self.session_id}, user={self.user}"
+            )
+
             # Validate session ownership
             from .models import ChatSession
+
             try:
                 await sync_to_async(ChatSession.objects.get)(
-                    session_id=self.session_id,
-                    user=self.user
+                    session_id=self.session_id, user=self.user
                 )
             except ObjectDoesNotExist:
                 logger.warning(f"Invalid session access attempt: {self.session_id}")
                 await self.close(code=4004)
                 return
-            
+
             logger.info(f"WebSocket connected: session={self.session_id}")
             await self.accept()
-            
+
         except Exception as e:
             logger.error(f"Connection error: {str(e)}")
             await self.close(code=4000)
@@ -90,7 +93,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         Args:
             close_code: The code indicating why the connection was closed
         """
-        logger.info(f"WebSocket disconnected: session={self.session_id}, code={close_code}")
+        logger.info(
+            f"WebSocket disconnected: session={self.session_id}, code={close_code}"
+        )
 
     async def send_error(self, message, code=None) -> None:
         """
@@ -100,11 +105,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message (str): Human-readable error message
             code (str, optional): Error code for client-side handling
         """
-        await self.send(text_data=json.dumps({
-            "type": "error",
-            "message": message,
-            "code": code
-        }))
+        await self.send(
+            text_data=json.dumps({"type": "error", "message": message, "code": code})
+        )
 
     async def receive(self, text_data) -> None:
         """
@@ -137,13 +140,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 return
 
             logger.info(f"Processing message: session={self.session_id}")
-            
+
             # Get chat session
             try:
                 from .models import ChatSession, ChatMessage
+
                 chat_session = await sync_to_async(ChatSession.objects.get)(
-                    session_id=self.session_id,
-                    user=self.user
+                    session_id=self.session_id, user=self.user
                 )
             except ObjectDoesNotExist:
                 logger.error(f"Chat session not found: {self.session_id}")
@@ -160,30 +163,33 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 full_response = ""
                 async for chunk in rag_system.handle_chat_query(query):
                     full_response += chunk
-                    await self.send(json.dumps({
-                        "type": "chunk",
-                        "chunk": chunk,
-                    }))
+                    await self.send(
+                        json.dumps(
+                            {
+                                "type": "chunk",
+                                "chunk": chunk,
+                            }
+                        )
+                    )
                 # Success response
-                await self.send(text_data=json.dumps({
-                    "type": "complete",
-                    "message": "Streaming finished"
-                }))
+                await self.send(
+                    text_data=json.dumps(
+                        {"type": "complete", "message": "Streaming finished"}
+                    )
+                )
                 logger.info(f"Message finished successfully: session={self.session_id}")
 
                 # Save messages
                 try:
                     await sync_to_async(ChatMessage.objects.create)(
-                        session=chat_session,
-                        role="human",
-                        content=query
+                        session=chat_session, role="human", content=query
                     )
                     await sync_to_async(ChatMessage.objects.create)(
-                        session=chat_session,
-                        role="ai",
-                        content=full_response
+                        session=chat_session, role="ai", content=full_response
                     )
-                    logger.info(f"Message processed successfully: session={self.session_id}")
+                    logger.info(
+                        f"Message processed successfully: session={self.session_id}"
+                    )
 
                 except DatabaseError as e:
                     logger.error(f"Failed to save chat messages: {str(e)}")

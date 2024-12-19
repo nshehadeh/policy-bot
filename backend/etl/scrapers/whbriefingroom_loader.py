@@ -7,6 +7,7 @@ from langchain_community.document_loaders.base import BaseLoader
 
 logger = logging.getLogger(__name__)
 
+
 class WhBriefingRoomLoader(BaseLoader):
     """Load MongoDB documents with custom metadata."""
 
@@ -76,8 +77,8 @@ class WhBriefingRoomLoader(BaseLoader):
                 "title": doc.get("title", ""),
                 "date_posted": doc.get("date_posted", ""),
                 "category": doc.get("category", ""),
-                #"url": doc.get("url", ""),
-                #"source": doc.get("source", "")
+                # "url": doc.get("url", ""),
+                # "source": doc.get("source", "")
             }
             # Extract text content from filtered fields or use the entire document
             if self.field_names is not None:

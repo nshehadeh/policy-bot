@@ -11,22 +11,27 @@ from bs4 import BeautifulSoup
 load_dotenv()
 
 # Logging Configuration
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 
 # MongoDB Connection
 def get_mongo_collection():
     try:
-        connection_string = os.getenv('MONGO_CONNECTION_STRING')
+        connection_string = os.getenv("MONGO_CONNECTION_STRING")
         client = MongoClient(connection_string)
-        db = client['govai']
+        db = client["govai"]
         logging.info("Connected to MongoDB successfully.")
-        return db['federal_registry']
+        return db["federal_registry"]
     except Exception as e:
         logging.error(f"Failed to connect to MongoDB: {e}")
         raise
 
+
 # Federal Register API Configuration
 BASE_URL = "https://www.federalregister.gov/api/v1/documents.json"
+
 
 # Fetch documents from the Federal Register API with pagination
 def fetch_documents(start_date, end_date, per_page=100):
@@ -61,6 +66,7 @@ def fetch_documents(start_date, end_date, per_page=100):
     logging.info(f"Total documents fetched: {len(all_documents)}.")
     return {"results": all_documents}
 
+
 # Fetch raw text from the URL
 def fetch_raw_text(raw_text_url):
     try:
@@ -75,6 +81,7 @@ def fetch_raw_text(raw_text_url):
         logging.error(f"Failed to fetch raw text from {raw_text_url}: {e}")
         return None
 
+
 # Fetch and parse text from the full text XML URL
 def fetch_full_text(full_text_xml_url):
     try:
@@ -84,8 +91,11 @@ def fetch_full_text(full_text_xml_url):
         text = " ".join(element.text for element in root.iter() if element.text)
         return text
     except (requests.exceptions.RequestException, ElementTree.ParseError) as e:
-        logging.error(f"Failed to fetch or parse full text from {full_text_xml_url}: {e}")
+        logging.error(
+            f"Failed to fetch or parse full text from {full_text_xml_url}: {e}"
+        )
         return None
+
 
 # Extract text from a PDF URL
 def extract_text_from_pdf(pdf_url):
@@ -96,7 +106,9 @@ def extract_text_from_pdf(pdf_url):
             f.write(response.content)
         with open("temp.pdf", "rb") as f:
             reader = PyPDF2.PdfReader(f)
-            text = " ".join(page.extract_text() for page in reader.pages if page.extract_text())
+            text = " ".join(
+                page.extract_text() for page in reader.pages if page.extract_text()
+            )
         os.remove("temp.pdf")  # Clean up temporary file
         return text
     except requests.exceptions.RequestException as e:
@@ -105,6 +117,7 @@ def extract_text_from_pdf(pdf_url):
     except Exception as e:
         logging.error(f"Failed to extract text from PDF: {e}")
         return None
+
 
 # Transform raw API data into a consistent format with text extraction
 def transform(raw_data):
@@ -133,36 +146,41 @@ def transform(raw_data):
             if not raw_text:
                 failed_text_count += 1
 
-            documents.append({
-                "document_number": item.get("document_number"),
-                "title": item.get("title"),
-                "abstract": item.get("abstract"),
-                "publication_date": item.get("publication_date"),
-                "type": item.get("type"),
-                "html_url": item.get("html_url"),
-                "pdf_url": item.get("pdf_url"),
-                "public_inspection_pdf_url": item.get("public_inspection_pdf_url"),
-                "full_text_xml_url": item.get("full_text_xml_url"),
-                "raw_text_url": item.get("raw_text_url"),
-                "raw_text": raw_text,  # Store extracted text
-                "agencies": item.get("agencies", []),
-                "excerpts": item.get("excerpts", []),
-                # Placeholder for summarization
-                "summary": None,  
-                # Indicates if the document has been chunked
-                "chunked": False, 
-                # Indicates if embeddings are generated
-                "embedded": False, 
-                 # Timestamp of the last processing
-                "processed_at": None,
-            })
+            documents.append(
+                {
+                    "document_number": item.get("document_number"),
+                    "title": item.get("title"),
+                    "abstract": item.get("abstract"),
+                    "publication_date": item.get("publication_date"),
+                    "type": item.get("type"),
+                    "html_url": item.get("html_url"),
+                    "pdf_url": item.get("pdf_url"),
+                    "public_inspection_pdf_url": item.get("public_inspection_pdf_url"),
+                    "full_text_xml_url": item.get("full_text_xml_url"),
+                    "raw_text_url": item.get("raw_text_url"),
+                    "raw_text": raw_text,  # Store extracted text
+                    "agencies": item.get("agencies", []),
+                    "excerpts": item.get("excerpts", []),
+                    # Placeholder for summarization
+                    "summary": None,
+                    # Indicates if the document has been chunked
+                    "chunked": False,
+                    # Indicates if embeddings are generated
+                    "embedded": False,
+                    # Timestamp of the last processing
+                    "processed_at": None,
+                }
+            )
 
-        logging.info(f"Text extraction summary: {raw_text_count} from raw_text_url, {full_text_count} from full_text_xml_url, {pdf_text_count} from pdf_url, {failed_text_count} failures.")
+        logging.info(
+            f"Text extraction summary: {raw_text_count} from raw_text_url, {full_text_count} from full_text_xml_url, {pdf_text_count} from pdf_url, {failed_text_count} failures."
+        )
         logging.info(f"Transformed {len(documents)} documents with text extraction.")
         return documents
     except Exception as e:
         logging.error(f"Error during transformation: {e}")
         raise
+
 
 # Load data into MongoDB
 def load_into_mongo(data):
@@ -170,22 +188,27 @@ def load_into_mongo(data):
         collection = get_mongo_collection()
         for doc in data:
             collection.update_one(
-                {"document_number": doc["document_number"]},
-                {"$set": doc},
-                upsert=True
+                {"document_number": doc["document_number"]}, {"$set": doc}, upsert=True
             )
         logging.info(f"Loaded {len(data)} documents into MongoDB.")
     except Exception as e:
         logging.error(f"Failed to load data into MongoDB: {e}")
         raise
 
+
 if __name__ == "__main__":
     import argparse
 
     # Argument parser for date range input
-    parser = argparse.ArgumentParser(description="ETL script for Federal Register data.")
-    parser.add_argument("--start_date", type=str, required=True, help="Start date in YYYY-MM-DD format.")
-    parser.add_argument("--end_date", type=str, required=True, help="End date in YYYY-MM-DD format.")
+    parser = argparse.ArgumentParser(
+        description="ETL script for Federal Register data."
+    )
+    parser.add_argument(
+        "--start_date", type=str, required=True, help="Start date in YYYY-MM-DD format."
+    )
+    parser.add_argument(
+        "--end_date", type=str, required=True, help="End date in YYYY-MM-DD format."
+    )
     args = parser.parse_args()
 
     start_date = args.start_date
