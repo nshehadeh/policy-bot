@@ -32,6 +32,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         session_id: UUID of the chat session
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session_id = None
+
     async def connect(self) -> None:
         """
         Handles WebSocket connection requests.
@@ -49,11 +53,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Authentication check
             if not self.scope["user"].is_authenticated:
                 logger.warning("Rejected unauthenticated WebSocket connection attempt")
-                await self.close(code=4001)
+                await self.close(code=4003)
                 return
 
             self.user = self.scope["user"]
-            self.session_id = self.scope["url_route"]["kwargs"]["session_id"]
+            self.session_id = self.scope["url_route"]["kwargs"].get("session_id")
+            if not self.session_id:
+                await self.close(code=4000)
+                return
+
             logging.info(f"WebSocket connection attempt: session={self.session_id}, user={self.user}")
             
             # Validate session ownership
