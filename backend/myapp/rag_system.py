@@ -17,19 +17,40 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# Abstract base classes
 class BaseModel:
+    """Base interface for language models.
+
+    Implementations should handle model initialization and configuration.
+    """
+
     def get_model(self):
+        """Returns configured language model instance."""
         raise NotImplementedError
 
 
 class BaseEmbeddings:
+    """Base interface for text embedding models.
+
+    Handles conversion of text to vector representations.
+    """
+
     def get_embeddings(self):
+        """Returns configured embedding model instance."""
         raise NotImplementedError
 
 
 class BaseVectorStore:
+    """Base interface for vector storage and retrieval.
+
+    Manages storage and similarity search of embedded documents.
+    """
+
     def __init__(self, embedding):
+        """Initialize with embedding model and validate compatibility.
+
+        Args:
+            embedding: Embedding model instance to use for vectorization
+        """
         self._validate_embedding_compatibility(embedding)
 
     def _validate_embedding_compatibility(self, embedding):
@@ -42,23 +63,39 @@ class BaseVectorStore:
 
 
 class BasePromptTemplate:
+    """Base interface for prompt templates.
+
+    Standardizes prompt generation across different use cases.
+    """
+
     def get_prompt_template(self):
         raise NotImplementedError
 
 
-# Concrete implementations
 class OpenAIModel(BaseModel):
+    """OpenAI GPT model implementation."""
+
     def get_model(self):
         return ChatOpenAI(model="gpt-4o")
 
 
 class OpenAIEmbeddingsModel(BaseEmbeddings):
+    """OpenAI text embedding model implementation."""
+
     def get_embeddings(self):
         return OpenAIEmbeddings(model="text-embedding-3-small")
 
 
 class PineconeVectorStoreModel(BaseVectorStore):
+    """Pinecone vector store implementation for similarity search."""
+
     def __init__(self, index_name, embeddings):
+        """Initialize Pinecone store with index and embeddings.
+
+        Args:
+            index_name: Name of Pinecone index to use
+            embeddings: OpenAI embedding model instance
+        """
         self.index_name = index_name
         self.embeddings = embeddings
         self._validate_embedding_compatibility(embeddings)
@@ -68,13 +105,17 @@ class PineconeVectorStoreModel(BaseVectorStore):
         return embedding.model == self.embeddings.model
 
     def get_vector_store(self) -> PineconeVectorStore:
+        """Returns configured Pinecone store instance."""
         return PineconeVectorStore(
             index_name=self.index_name, embedding=self.embeddings
         )
 
 
 class QAPromptTemplate(BasePromptTemplate):
+    """Template for question answering with context."""
+
     def get_prompt_template(self) -> ChatPromptTemplate:
+        """Returns template with system prompt and chat history placeholders."""
         system_prompt = (
             "You are an assistant for question-answering tasks. "
             "Use the following pieces of retrieved context to answer "
@@ -96,7 +137,10 @@ class QAPromptTemplate(BasePromptTemplate):
 
 
 class ContextPromptTemplate(BasePromptTemplate):
+    """Template for contextualizing questions based on chat history."""
+
     def get_prompt_template(self) -> ChatPromptTemplate:
+        """Returns template for reformulating questions with context."""
         contextualize_q_system_prompt = (
             "Given a chat history and the latest user question "
             "which might reference context in the chat history, "
@@ -116,7 +160,10 @@ class ContextPromptTemplate(BasePromptTemplate):
 
 
 class QuerySearchPromptTemplate(BasePromptTemplate):
+    """Template for expanding search queries with policy-specific context."""
+
     def get_prompt_template(self) -> PromptTemplate:
+        """Returns template for query expansion with policy focus."""
         template = """You are an expert at expanding search queries to find relevant policy documents. 
             Given a simple query, expand it into a detailed search query that would help find relevant policy documents.
             Focus on including:
@@ -133,8 +180,13 @@ class QuerySearchPromptTemplate(BasePromptTemplate):
         return PromptTemplate.from_template(template)
 
 
-# Generator class
 class Generator:
+    """Core RAG chain generator for conversational document Q&A.
+
+    Combines retrieval, history awareness, and response generation.
+    Thread-safe for concurrent chat sessions.
+    """
+
     def __init__(
         self,
         llm,
@@ -143,6 +195,15 @@ class Generator:
         context_q_prompt_template,
         chat_history: ChatMessageHistory,
     ) -> None:
+        """Initialize generator with models and templates.
+
+        Args:
+            llm: Language model for generation
+            retriever: Document retriever instance
+            qa_prompt_template: Template for Q&A responses
+            context_q_prompt_template: Template for context handling
+            chat_history: Session chat history
+        """
         self.llm = llm
         self.retriever = retriever
         self.qa_prompt = qa_prompt_template
@@ -174,28 +235,59 @@ class Generator:
                 sleep(0.2)
 
     async def invoke_async(self, question):
+        """Asynchronously generate response with streaming.
+
+        Args:
+            question: User query string
+        Yields:
+            str: Generated response chunks
+        """
         async for chunk in self.conversational_rag_chain.astream({"input": question}):
             if "answer" in chunk:
                 yield chunk["answer"]
                 await asyncio.sleep(0.1)
 
     def update_chat_history(self, new_chat_history: ChatMessageHistory) -> None:
+        """Update chat history for the current session.
+
+        Args:
+            new_chat_history: New chat history to update
+        """
         self.chat_history = new_chat_history
 
     def get_session_history(self) -> ChatMessageHistory:
         return self.chat_history
 
 
-# Search Class
 class Search:
+    """Document search functionality with query expansion.
+
+    Handles query preprocessing and document retrieval.
+    """
+
     def __init__(self, llm, retriever, prompt_template):
+        """Initialize search with models and template.
+
+        Args:
+            llm: Language model for query expansion
+            retriever: Document retriever instance
+            prompt_template: Template for query preprocessing
+        """
         self.llm = llm
         self.retriever = retriever
         self.prompt = prompt_template
         self.query_search_chain = self.prompt | self.llm | StrOutputParser()
 
     def invoke(self, question):
-        """Handle search queries by expanding the query and retrieving relevant documents."""
+        """Process search query and retrieve relevant documents.
+
+        Args:
+            question: User search query
+        Returns:
+            list: Document IDs of relevant results (max 6)
+        Raises:
+            Exception: Handled internally with empty fallback
+        """
         # TODO Add relevance scores
         try:
             expanded_query = self.query_search_chain.invoke(question)
@@ -214,12 +306,17 @@ class Search:
             return []
 
 
-# Singleton RAGSystem
 class RAGSystem:
+    """Singleton RAG system orchestrating all components.
+
+    Handles environment setup, API keys, and error recovery.
+    """
+
     _instance = None
     _lock = Lock()
 
     def __new__(cls, *args, **kwargs):
+        """Thread-safe singleton instance creation."""
         if not cls._instance:
             with cls._lock:
                 if not cls._instance:
@@ -234,6 +331,15 @@ class RAGSystem:
         prompt_template: Optional[BasePromptTemplate] = None,
         chat_history: ChatMessageHistory = ChatMessageHistory(),
     ) -> None:
+        """Initialize RAG system components.
+
+        Args:
+            model: Optional custom language model
+            embeddings: Optional custom embedding model
+            vector_store: Optional custom vector store
+            prompt_template: Optional custom prompt template
+            chat_history: Optional existing chat history
+        """
         if not hasattr(self, "_initialized"):
             load_dotenv()
             self._load_environment_variables()
@@ -267,6 +373,10 @@ class RAGSystem:
             self.msg = ""
 
     def _load_environment_variables(self):
+        """Load and validate required API keys and settings.
+
+        Sets up OpenAI, Pinecone, and LangSmith configurations.
+        """
         if api_key := os.getenv("OPENAI_API_KEY"):
             os.environ["OPENAI_API_KEY"] = api_key
         if pinecone_key := os.getenv("PINECONE_API_KEY"):
@@ -278,12 +388,24 @@ class RAGSystem:
         os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
 
     def update_llm(self, model: BaseModel) -> None:
-        """Update the language model."""
+        """Update system language model.
+
+        Args:
+            model: New language model instance
+        """
         self.llm = model.get_model()
         self.generator.llm = self.llm
 
     async def handle_chat_query(self, question):
-        """Handle chat-based queries using the generator for streaming responses."""
+        """Process chat queries with streaming responses.
+
+        Args:
+            question: User chat query
+        Yields:
+            str: Generated response chunks
+        Notes:
+            Includes error handling with fallback response
+        """
         try:
             logger.info("Processing chat query")
             async for generated_chunk in self.generator.invoke_async(question):
@@ -295,7 +417,15 @@ class RAGSystem:
             yield "I apologize, but I'm having trouble processing your request right now. Please try again."
 
     def handle_search_query(self, question):
-        """Handle search queries with error handling and fallback"""
+        """Process document search queries.
+
+        Args:
+            question: User search query
+        Returns:
+            list: Relevant document IDs
+        Notes:
+            Includes error handling with empty fallback
+        """
         try:
             logger.info("Processing search query")
             results = self.search.invoke(question)
@@ -307,5 +437,9 @@ class RAGSystem:
             return []
 
     def load_memory(self, chat_history: ChatMessageHistory) -> None:
-        """Load chat history into memory."""
+        """Update system chat history.
+
+        Args:
+            chat_history: New chat history to load
+        """
         self.generator.update_chat_history(chat_history)

@@ -9,7 +9,6 @@ from channels.db import database_sync_to_async
 from ..consumers import ChatConsumer
 from ..models import ChatSession
 
-
 class TestChatConsumer(TransactionTestCase):
     async def asyncSetUp(self):
         # Create test user

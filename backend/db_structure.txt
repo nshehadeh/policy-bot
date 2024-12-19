@@ -5,13 +5,13 @@ User (auth_user)
 |   - last_name
 |   - password
 |
-|--< ChatSession (myapp_chatsession)
+|--< ChatSession
 |       - id (Primary Key)
 |       - user_id (Foreign Key to auth_user)
 |       - session_id (UUID, unique for each session)
 |       - created_at (Timestamp when session was created)
 |
-|       |--< ChatMessage (myapp_chatmessage)
+|       |--< ChatMessage
 |               - id (Primary Key)
 |               - session_id (Foreign Key to myapp_chatsession)
 |               - role (Human or AI)
