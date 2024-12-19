@@ -14,6 +14,7 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
+          <Route path="/" element = {<Login setToken = {setToken} />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login setToken={setToken} />} />
           <Route path="/chat" element={<Chat token={token} />} />

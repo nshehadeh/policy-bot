@@ -20,17 +20,19 @@ function Chat({ token }) {
   const chatMessagesRef = useRef(null);
   const chatHistoryRef = useRef(null);
 
+  // Automatically scroll chat to the bottom when new messages arrive
   const scrollToBottom = () => {
     if (chatMessagesRef.current) {
       chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
     }
   };
 
+  // Scroll to bottom whenever chat history updates
   useEffect(() => {
     scrollToBottom();
   }, [history]);
 
-  // Fetch chat sessions on component mount
+  // Initialize chat sessions on component mount
   useEffect(() => {
     const fetchChatSessions = async () => {
       try {
@@ -45,16 +47,14 @@ function Chat({ token }) {
     fetchChatSessions();
   }, [token]);
 
-  // Connect to websock if session is established
-  // Connect to WebSocket when a session is loaded
+  // WebSocket connection management
   useEffect(() => {
     if (currentSessionId) {
       console.log(
         `Trying to open WebSocket connection to: ws://localhost:8000/ws/chat/${currentSessionId}/`
       );
 
-      // Close any existing connection
-
+      // Close existing WebSocket connection if open
       if (
         websocket.current &&
         websocket.current.readyState === WebSocket.OPEN
@@ -63,7 +63,7 @@ function Chat({ token }) {
         websocket.current.close();
       }
 
-      // Open new WebSocket connection
+      // Initialize new WebSocket connection for current chat session
       console.log(
         `Opening WebSocket connection for session: ${currentSessionId}`
       );
@@ -71,49 +71,56 @@ function Chat({ token }) {
         `ws://localhost:8000/ws/chat/${currentSessionId}/?token=${token}`
       );
 
+      // WebSocket event handlers
       websocket.current.onopen = () => {
         console.log("WebSocket connection opened.");
       };
 
+      // Handle incoming messages from AI
       websocket.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.type === "complete") return;
-        aiMessageRef.current += ` ${data.chunk}`;
+        if (data.type === "complete") return; // Return after completion messages
+        aiMessageRef.current += ` ${data.chunk}`; // Accumulate AI response
         console.log(data.chunk);
 
+        // Update chat history with AI response
         setHistory((prev) => {
           const newHistory = [...prev];
           if (
             newHistory.length &&
             newHistory[newHistory.length - 1]?.role === "ai"
           ) {
+            // Update existing AI message if it's the last message
             newHistory[newHistory.length - 1].content = aiMessageRef.current;
           } else {
+            // Add new AI message otherwise
             newHistory.push({ role: "ai", content: data.chunk });
           }
-          // console.log('Updated history:', newHistory);
           return newHistory;
         });
       };
 
+      // Connection closure handler
       websocket.current.onclose = () => {
         console.log("WebSocket connection closed.");
       };
 
+      // Error handler
       websocket.current.onerror = (error) => {
         console.error("WebSocket error:", error);
       };
 
-      // Cleanup WebSocket on component unmount or session change
+      // Cleanup function for component unmount or session change
       return () => {
         websocket.current.close();
       };
     }
   }, [currentSessionId, token]);
 
+  // Load a previous chat session and its history
   const handleLoadPreviousChat = async (sessionId) => {
     setCurrentSessionId(sessionId);
-    setHistory([]); // Clear any existing history
+    setHistory([]); // Clear current chat history
 
     try {
       const res = await api.post(
@@ -123,50 +130,54 @@ function Chat({ token }) {
           headers: { Authorization: `Token ${token}` },
         }
       );
-      console.log("Loaded Chat History:", res.data.chat_history); // Log the chat history to the console
-
-      setHistory(res.data.chat_history || []); // Ensure chat_history is an array
+      console.log("Loaded Chat History:", res.data.chat_history);
+      setHistory(res.data.chat_history || []); // Update with loaded history
     } catch (error) {
       console.error("Error loading chat history:", error);
     }
   };
 
+  // Handle sending a new message in current chat
   const handleChat = () => {
     if (!currentSessionId) {
-      // If no session exists, create a new one
+      // Create new session if none exists
       handleStartNewChat();
       return;
     }
-    // push human message
+    // Add user message to chat history
     aiMessageRef.current = "";
     setHistory((prev) => [...prev, { role: "human", content: message }]);
-    // send on websocket
+    
+    // Send message through WebSocket if connection is open
     if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
       websocket.current.send(
         JSON.stringify({
           message: message,
         })
       );
-      setMessage(""); // Clear the input
+      setMessage(""); // Clear input field
     }
   };
 
+  // Start a new chat session
   const handleStartNewChat = async () => {
     try {
       let data = {};
-      // Check if message is empty
+      // Include message in new chat if present
       if (message.trim()) {
         data = { message };
       }
       console.log("Token being used:", token);
 
+      // Create new chat session
       const res = await api.post("/chat/new/", data, {
         headers: { Authorization: `Token ${token}` },
       });
 
       setHistory([]);
       setCurrentSessionId(res.data.session_id);
-      // If starting chat with new message --> send in WS
+      
+      // Handle initial message if provided
       if (data.message) {
         setHistory([{ role: "human", content: message }]);
         if (
@@ -181,9 +192,9 @@ function Chat({ token }) {
         }
         setMessage("");
       }
-      // Reload sessions
+      
+      // Refresh chat sessions list
       const sessionsRes = await api.get("/chat/sessions/", {
-        // Reload chat sessions
         headers: { Authorization: `Token ${token}` },
       });
       setSessions(sessionsRes.data);
@@ -192,6 +203,7 @@ function Chat({ token }) {
     }
   };
 
+  // Update user's name in settings
   const handleNameChange = async () => {
     try {
       await api.post(
@@ -207,6 +219,7 @@ function Chat({ token }) {
     }
   };
 
+  // Fetch user's current settings
   const handleFetchUserData = async () => {
     try {
       const userRes = await api.get("/user_settings/", {
@@ -219,14 +232,17 @@ function Chat({ token }) {
     }
   };
 
+  // Delete a chat session
   const handleDeleteChat = async (sessionId) => {
     try {
       await api.delete(`/chat/sessions/${sessionId}/`, {
         headers: { Authorization: `Token ${token}` },
       });
+      // Remove session from local state
       setSessions(
         sessions.filter((session) => session.session_id !== sessionId)
       );
+      // Clear current session if it was deleted
       if (sessionId === currentSessionId) {
         setCurrentSessionId(null);
         setHistory([]);
@@ -236,6 +252,7 @@ function Chat({ token }) {
     }
   };
 
+  // Rename a chat session
   const handleRenameChat = async (sessionId, newName) => {
     try {
       await api.patch(
@@ -243,6 +260,7 @@ function Chat({ token }) {
         { name: newName },
         { headers: { Authorization: `Token ${token}` } }
       );
+      // Update session name in local state
       setSessions(
         sessions.map((session) =>
           session.session_id === sessionId
@@ -257,7 +275,7 @@ function Chat({ token }) {
     }
   };
 
-  // Close chat history when clicking outside
+  // Handle clicking outside chat history panel to close it
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -268,21 +286,29 @@ function Chat({ token }) {
       }
     };
 
+    // Add click listener when chat history is shown
     if (showChatHistory) {
       document.addEventListener("mousedown", handleClickOutside);
     }
+    // Cleanup listener on unmount or when chat history is hidden
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showChatHistory]);
 
   return (
+    // Main application container
     <div className="app-container">
+      {/* Header section */}
       <div className="app-header">
         <h1>PolicyAI</h1>
       </div>
+
+      {/* Main content area containing chat and search sections */}
       <div className="main-content">
+        {/* Chat interface section */}
         <div className="chat-section">
+          {/* Chat controls header */}
           <div className="chat-header">
             <button
               className="button-standard"
@@ -295,10 +321,12 @@ function Chat({ token }) {
             </button>
           </div>
 
+          {/* Chat history overlay */}
           {showChatHistory && (
             <div className="chat-history-overlay">
               <div className="chat-history-modal" ref={chatHistoryRef}>
                 <h2>Previous Chats</h2>
+                {/* List of previous chat sessions */}
                 <div className="chat-sessions-list">
                   {sessions.map((session) => (
                     <div
@@ -309,14 +337,16 @@ function Chat({ token }) {
                         setShowChatHistory(false);
                       }}
                     >
+                      {/* Session information display */}
                       <div className="session-info">
                         {renamingSessionId === session.session_id ? (
+                          // Rename input field
                           <input
                             type="text"
                             value={newChatName}
                             onChange={(e) => setNewChatName(e.target.value)}
                             onClick={(e) => e.stopPropagation()}
-                            onKeyPress={(e) => {
+                            onKeyDown={(e) => {
                               if (e.key === "Enter") {
                                 handleRenameChat(
                                   session.session_id,
@@ -328,16 +358,21 @@ function Chat({ token }) {
                             className="rename-input"
                           />
                         ) : (
+                          // Session name display
                           <span className="session-name">
                             {session.name || "Untitled Chat"}
                           </span>
                         )}
+                        {/* Session creation date */}
                         <span className="session-date">
                           {new Date(session.created_at).toLocaleDateString()}
                         </span>
                       </div>
+
+                      {/* Session action buttons */}
                       <div className="session-actions">
                         {renamingSessionId === session.session_id ? (
+                          // Rename mode actions
                           <>
                             <button
                               className="rename-button"
@@ -365,6 +400,7 @@ function Chat({ token }) {
                             </button>
                           </>
                         ) : (
+                          // Normal mode actions
                           <button
                             className="rename-button"
                             onClick={(e) => {
@@ -377,6 +413,7 @@ function Chat({ token }) {
                             ✎
                           </button>
                         )}
+                        {/* Delete session button */}
                         <button
                           className="delete-session-button"
                           onClick={(e) => {
@@ -394,6 +431,7 @@ function Chat({ token }) {
             </div>
           )}
 
+          {/* Chat messages display area */}
           <div className="chat-messages" ref={chatMessagesRef}>
             {history.map((msg, index) => (
               <div key={index} className={`message ${msg.role}`}>
@@ -402,12 +440,13 @@ function Chat({ token }) {
             ))}
           </div>
 
+          {/* Chat input area */}
           <div className="chat-input">
             <input
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleChat()}
+              onKeyDown={(e) => e.key === "Enter" && handleChat()}
               placeholder="Type your message..."
             />
             <button
@@ -420,10 +459,13 @@ function Chat({ token }) {
           </div>
         </div>
 
+        {/* Document search section */}
         <div className="search-section">
           <DocumentSearch token={token} />
         </div>
       </div>
+
+      {/* Settings button and panel */}
       {!showSettings ? (
         <button
           className="settings-button"
@@ -447,6 +489,7 @@ function Chat({ token }) {
             </button>
             <h3>User Settings</h3>
           </div>
+          {/* Settings form */}
           <div className="settings-form">
             <div className="form-group">
               <label>First Name</label>
@@ -475,15 +518,15 @@ function Chat({ token }) {
                 Save
               </button>
             ) : (
-              <button
+                <button
                 className="edit-button"
-                onClick={() => setIsEditingSettings(true)}
-              >
-                Edit
-              </button>
-            )}
+                  onClick={() => setIsEditingSettings(true)}
+                >
+                  Edit
+                </button>
+              )}
+            </div>
           </div>
-        </div>
       )}
     </div>
   );

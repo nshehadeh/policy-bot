@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import api from "../../services/api";
 import "./DocumentSearch.css";
 
+// DocumentSearch component for searching and displaying document results
 const DocumentSearch = ({ token }) => {
+  // State management for search functionality
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -13,6 +15,7 @@ const DocumentSearch = ({ token }) => {
     fetchDocuments("");
   }, []);
 
+  // Fetch documents from the API based on search query
   const fetchDocuments = async (searchQuery) => {
     setLoading(true);
     try {
@@ -22,27 +25,30 @@ const DocumentSearch = ({ token }) => {
           headers: { Authorization: `Token ${token}` },
         }
       );
-      setResults(response.data.results || []);
+      setResults(response.data.results || []); // Update results, default to empty array if null
     } catch (error) {
       console.error("Error fetching documents:", error);
     }
     setLoading(false);
   };
 
+  // Handle search form submission
   const handleSearch = (e) => {
     e.preventDefault();
     fetchDocuments(query);
   };
 
+  // Set the selected document for detailed view
   const handleDocumentClick = (document) => {
     setSelectedDocument(document);
   };
 
+  // Clear the selected document view
   const handleCloseDocument = () => {
     setSelectedDocument(null);
   };
 
-  // Close overlay when clicking outside the document details
+  // Close document overlay when clicking outside the details panel
   const handleOverlayClick = (e) => {
     if (e.target.classList.contains("document-overlay")) {
       setSelectedDocument(null);
@@ -50,7 +56,9 @@ const DocumentSearch = ({ token }) => {
   };
 
   return (
+    // Main document search container
     <div className="document-search">
+      {/* Search form section */}
       <div className="search-container">
         <form onSubmit={handleSearch} className="search-form">
           <input
@@ -66,11 +74,14 @@ const DocumentSearch = ({ token }) => {
         </form>
       </div>
 
+      {/* Results display section */}
       <div className="documents-container">
         <div className="documents-grid">
           {loading ? (
+            // Loading indicator
             <div className="loading">Loading...</div>
           ) : (
+            // Document results grid
             results.map((doc) => (
               <div
                 key={doc.id}
@@ -86,6 +97,7 @@ const DocumentSearch = ({ token }) => {
           )}
         </div>
 
+        {/* Document detail overlay */}
         {selectedDocument && (
           <div className="document-overlay" onClick={handleOverlayClick}>
             <div className="document-details">

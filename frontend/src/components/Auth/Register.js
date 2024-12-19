@@ -1,16 +1,17 @@
-// Register.js
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import './auth.css'; 
 
 const Register = () => {
+  // State management for form inputs and error handling
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [error, setError] = useState('');
   let navigate = useNavigate();
 
+  // Handle user registration process
   const handleRegister = async () => {
     setError(''); // Clear any previous errors
 
@@ -45,11 +46,12 @@ const Register = () => {
     }
 
     try {
+      // Submit registration request to backend
       await axios.post('/api/users/', {
         username,
         password,
       });
-      navigate('/login');
+      navigate('/login'); // Redirect to login page on success
     } catch (error) {
       if (error.response && error.response.data) {
         // Handle specific error messages from the backend
@@ -67,11 +69,14 @@ const Register = () => {
   };
 
   return (
+    // Main registration container
     <div className="auth-container">
       <div className="auth-box">
         <h1 className="auth-title">PolicyAI</h1>
         <h2>Create Account</h2>
+        {/* Error message display */}
         {error && <div className="error-message">{error}</div>}
+        {/* Registration form inputs */}
         <div className="input-group">
           <input
             type="text"
@@ -95,7 +100,9 @@ const Register = () => {
             className="auth-input"
           />
         </div>
+        {/* Registration submit button */}
         <button onClick={handleRegister} className="auth-button">Register</button>
+        {/* Login link for existing users */}
         <p className="auth-link">
           Already have an account? <Link to="/login">Login</Link>
         </p>
