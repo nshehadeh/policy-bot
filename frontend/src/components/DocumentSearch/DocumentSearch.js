@@ -1,22 +1,18 @@
-import React, { useState, useEffect } from "react";
+// Required imports for React functionality and styling
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import api from "../../services/api";
 import "./DocumentSearch.css";
 
 // DocumentSearch component for searching and displaying document results
 const DocumentSearch = ({ token }) => {
-  // State management for search functionality
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    // Load initial documents
-    fetchDocuments("");
-  }, []);
+  const initialFetchDone = useRef(false);
 
   // Fetch documents from the API based on search query
-  const fetchDocuments = async (searchQuery) => {
+  const fetchDocuments = useCallback(async (searchQuery) => {
     setLoading(true);
     try {
       const response = await api.get(
@@ -30,7 +26,15 @@ const DocumentSearch = ({ token }) => {
       console.error("Error fetching documents:", error);
     }
     setLoading(false);
-  };
+  }, [token]);
+
+  // Load initial documents when component mounts
+  useEffect(() => {
+    if (!initialFetchDone.current) {
+      fetchDocuments("");
+      initialFetchDone.current = true;
+    }
+  }, [fetchDocuments]);
 
   // Handle search form submission
   const handleSearch = (e) => {
