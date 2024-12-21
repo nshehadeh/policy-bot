@@ -1,0 +1,564 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+
+/* Theme Variables */
+:root {
+  /* Base Sizes */
+  --base-font-size: 0.875rem;  /* ~14px */
+  --spacing-xs: 0.25rem;  /* 4px */
+  --spacing-sm: 0.5rem;   /* 8px */
+  --spacing-md: 0.75rem;  /* 12px */
+  --spacing-lg: 1rem;     /* 16px */
+  --spacing-xl: 1.5rem;   /* 24px */
+
+  /* Light Theme Colors - More Muted */
+  --light-bg: #f3f4f6;
+  --light-card: #f9fafb;
+  --light-border: #e5e7eb;
+  --light-text: #1f2937;
+  --light-text-secondary: #6b7280;
+  --light-accent: #4f46e5;
+  --light-accent-hover: #4338ca;
+  --light-input: #f3f4f6;
+  --light-header: #f3f4f6;
+
+  /* Dark Theme Colors */
+  --dark-bg: #111827;
+  --dark-card: #1f2937;
+  --dark-border: #374151;
+  --dark-text: #f3f4f6;
+  --dark-text-secondary: #9ca3af;
+
+  /* Shared Colors */
+  --success: #059669;
+  --error: #dc2626;
+  --warning: #d97706;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  --gradient-dark: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+  --button-gradient: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+
+  /* Shadows - More subtle for light mode */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+}
+
+/* Base Styles */
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: var(--base-font-size);
+}
+
+/* Theme Classes */
+.theme-dark {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+.theme-light {
+  background-color: var(--light-bg);
+  color: var(--light-text);
+}
+
+/* Main Container Styles */
+.app-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+}
+
+.main-container {
+  display: flex;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-xl);
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.chat-section, .search-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--light-card);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.theme-dark .chat-section,
+.theme-dark .search-section {
+  background: var(--dark-card);
+}
+
+/* Remove the divider since we're using gap */
+.divider {
+  display: none;
+}
+
+/* Main Header */
+.main-header {
+  height: 3.5rem;
+  border-bottom: 1px solid var(--light-border);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-xl);
+}
+
+.main-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.main-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.header-controls {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.theme-dark .main-header {
+  background-color: var(--dark-card);
+  border-color: var(--dark-border);
+  fo: var(--dark-text);
+}
+
+.theme-light .main-header {
+  background-color: var(--light-card);
+  border-color: var(--light-border);
+}
+
+/* Search Section Styles */
+.search-container {
+  background-color: var(--light-header);
+  border-bottom: 1px solid var(--light-border);
+  backdrop-filter: blur(8px);
+}
+
+.theme-dark .search-container {
+  background-color: var(--dark-header);
+  border-color: var(--dark-border);
+}
+
+.search-input {
+  background-color: var(--light-input);
+  color: var(--light-text);
+  border: 1px solid var(--light-border);
+  transition: all 0.2s ease;
+  font-size: var(--base-font-size);
+  letter-spacing: -0.01em;
+}
+
+.theme-light .search-input {
+  background-color: #f9fafb;
+  border: 1px solid var(--light-border);
+}
+
+.search-input:focus {
+  background-color: #ffffff;
+  border-color: var(--light-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-dark .search-input {
+  background-color: var(--dark-input);
+  color: var(--dark-text);
+  border-color: var(--dark-border);
+}
+
+.theme-dark .search-input:focus {
+  border-color: var(--dark-accent);
+}
+
+/* Document Cards */
+.search-card {
+  background-color: var(--light-card);
+  border: 1px solid var(--light-border);
+  padding: var(--spacing-md);
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-dark .search-card {
+  background-color: var(--dark-card);
+  border-color: var(--dark-border);
+}
+
+.theme-light .search-card {
+  background-color: #f9fafb;
+}
+
+.search-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--light-accent);
+}
+
+.search-card h3 {
+  color: var(--light-text);
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+  font-size: calc(var(--base-font-size) * 1.1);
+  margin-bottom: var(--spacing-xs);
+}
+
+.search-card div {
+  color: var(--light-text-secondary);
+  line-height: 1.6;
+  font-size: var(--base-font-size);
+}
+
+/* Message Container */
+.chat-messages {
+
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  min-height: 0;
+}
+
+.theme-dark .chat-messages {
+  background-color: var(--dark-bg);
+}
+
+.theme-light .chat-messages {
+  background-color: var(--light-bg);
+}
+
+/* Message Bubbles */
+.message-bubble {
+  max-width: 80%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin: var(--spacing-sm);
+  border-radius: 0.5rem;
+  background: var(--dark-card);
+  color: var(--dark-text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  text-align: left;
+}
+
+.message-bubble.human {
+  background: var(--gradient-dark);
+  color: white;
+  border-top-right-radius: 0;
+}
+
+.theme-light .message-bubble {
+  background: var(--light-card);
+  color: var(--light-text);
+}
+
+.theme-dark .message-bubble {
+  background-color: var(--dark-card);
+  border: 1px solid rgba(55, 65, 81, 0.3);
+}
+
+.message-bubble.human {
+  margin-left: auto;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Input Container */
+.input-container {
+  width: 100%;
+  padding: var(--spacing-sm);
+  display: flex;
+  gap: var(--spacing-xs);
+  background-color: var(--light-bg);
+  border-top: 1px solid var(--light-border);
+}
+
+.theme-dark .input-container {
+  background-color: var(--dark-card);
+  border-color: var(--dark-border);
+}
+
+/* Chat Input */
+.chat-input {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: 0.5rem;
+  background-color: var(--light-card);
+  color: var(--light-text);
+  border: 1px solid var(--light-border);
+  transition: all 0.2s ease;
+  font-size: var(--base-font-size);
+  height: 2.5rem;
+}
+
+.theme-dark .chat-input {
+  background-color: var(--dark-card);
+  color: var(--dark-text);
+  border-color: var(--dark-border);
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: var(--light-accent);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+.theme-dark .chat-input:focus {
+  border-color: var(--dark-accent);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+/* Settings */
+.settings-input {
+  background-color: var(--light-card);
+  color: var(--light-text);
+  border: 1px solid var(--light-border);
+  transition: all 0.2s ease;
+}
+
+.theme-dark .settings-input {
+  background-color: var(--dark-card);
+  color: var(--dark-text);
+  border-color: var(--dark-border);
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: var(--light-accent);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+.theme-dark .settings-input:focus {
+  border-color: var(--dark-accent);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.settings-label {
+  color: var(--light-text);
+}
+
+.theme-dark .settings-label {
+  color: var(--dark-text);
+}
+
+.settings-close {
+  color: var(--light-text-secondary);
+  font-size: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.theme-dark .settings-close {
+  color: var(--dark-text-secondary);
+}
+
+.settings-close:hover {
+  color: var(--light-text);
+}
+
+.theme-dark .settings-close:hover {
+  color: var(--dark-text);
+}
+
+/* Buttons */
+.history-button,
+.common-button,
+.search-button {
+  background: var(--button-gradient);
+  color: white;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  font-size: var(--base-font-size);
+  padding: var(--spacing-xs) var(--spacing-md);
+  height: 2rem;
+}
+
+.history-button:hover,
+.common-button:hover,
+.search-button:hover {
+  background: var(--button-gradient);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.history-button:disabled,
+.common-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Settings and Theme Toggle */
+.controls-container {
+  position: fixed;
+  bottom: var(--spacing-lg);
+  right: var(--spacing-lg);
+  display: flex;
+  gap: var(--spacing-md);
+  z-index: 100;
+}
+
+.theme-toggle {
+  padding: var(--spacing-sm);
+  border-radius: 0.25rem;
+  width:  3rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-2px);
+}
+
+/* Settings Button */
+.settings-button {
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background: var(--button-gradient);
+  color: white;
+  font-size: var(--base-font-size);
+  height: 2rem;
+}
+
+.settings-button:hover {
+  transform: translateY(-2px);
+}
+
+/* Modern Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+.theme-dark ::-webkit-scrollbar-track {
+  background: var(--dark-bg);
+}
+
+.theme-dark ::-webkit-scrollbar-thumb {
+  background: var(--dark-border);
+}
+
+.theme-light ::-webkit-scrollbar-track {
+  background: var(--light-bg);
+}
+
+.theme-light ::-webkit-scrollbar-thumb {
+  background: var(--light-border);
+}
+
+/* Modal Styling */
+.modal-backdrop {
+  animation: fadeIn 0.2s ease;
+}
+
+.theme-dark .modal-backdrop {
+  background-color: rgba(15, 23, 42, 0.75);
+}
+
+.theme-light .modal-backdrop {
+  background-color: rgba(248, 250, 252, 0.75);
+}
+
+.modal-content {
+  animation: slideUp 0.3s ease;
+  max-width: 400px;
+  width: 600px;
+  border-radius: 1rem;
+  font-size: var(--base-font-size);
+  padding: var(--spacing-lg);
+}
+
+.theme-dark .modal-content {
+  background-color: var(--dark-card);
+  border: 1px solid var(--dark-border);
+}
+
+.theme-light .modal-content {
+  background-color: var(--light-card);
+  border: 1px solid var(--light-border);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Spacing and Layout */
+.p-4 {
+  padding: var(--spacing-md);
+}
+
+.p-6 {
+  padding: var(--spacing-lg);
+}
+
+.gap-2 {
+  gap: var(--spacing-sm);
+}
+
+.gap-4 {
+  gap: var(--spacing-md);
+}
+
+/* Document Modal */
+.document-modal {
+  max-width: 600px;
+}
+
+.document-modal-header {
+  padding: var(--spacing-md);
+}
+
+.document-modal h2 {
+  font-size: calc(var(--base-font-size) * 1.2);
+}
+
+/* Adjust heights for containers */
+.chat-container, .document-container {
+  height: calc(100vh - 150px);
+}
+
+.search-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}

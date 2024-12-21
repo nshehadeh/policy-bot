@@ -1,4 +1,3 @@
-from django.utils.deprecation import MiddlewareMixin
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.authtoken.models import Token
 from urllib.parse import parse_qs

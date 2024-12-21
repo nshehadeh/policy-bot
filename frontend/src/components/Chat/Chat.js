@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import DocumentSearch from "../DocumentSearch/DocumentSearch";
 import api from "../../services/api";
-import "./Chat.css";
+//import "./Chat.css";
+import "./MChat.css";
 
 function Chat({ token }) {
   const [message, setMessage] = useState("");
@@ -19,6 +20,7 @@ function Chat({ token }) {
   const aiMessageRef = useRef("");
   const chatMessagesRef = useRef(null);
   const chatHistoryRef = useRef(null);
+  const [theme, setTheme] = useState('dark');
 
   // Automatically scroll chat to the bottom when new messages arrive
   const scrollToBottom = () => {
@@ -80,7 +82,7 @@ function Chat({ token }) {
       websocket.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === "complete") return; // Return after completion messages
-        aiMessageRef.current += ` ${data.chunk}`; // Accumulate AI response
+        aiMessageRef.current += data.chunk; // Accumulate AI response
         console.log(data.chunk);
 
         // Update chat history with AI response
@@ -214,6 +216,7 @@ function Chat({ token }) {
         }
       );
       setShowSettings(false);
+      setIsEditingSettings(false);
     } catch (error) {
       console.error("Error updating name:", error);
     }
@@ -297,234 +300,255 @@ function Chat({ token }) {
   }, [showChatHistory]);
 
   return (
-    // Main application container
-    <div className="app-container">
-      {/* Header section */}
-      <div className="app-header">
-        <h1>PolicyAI</h1>
-      </div>
-
-      {/* Main content area containing chat and search sections */}
-      <div className="main-content">
-        {/* Chat interface section */}
-        <div className="chat-section">
-          {/* Chat controls header */}
-          <div className="chat-header">
+    <div className={`flex flex-col h-screen overflow-hidden theme-${theme}`}>
+      {/* Main Header */}
+      <div className="main-header shrink-0">
+        <div className="main-header-content">
+          <h1>PolicyAI</h1>
+          <div className="header-controls">
             <button
-              className="button-standard"
-              onClick={() => setShowChatHistory(true)}
+              className="settings-button"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
             >
-              Chat History
+              {theme === 'dark' ? '☀️' : '🌙'}
             </button>
-            <button className="button-standard" onClick={handleStartNewChat}>
-              New Chat
+            <button
+              className="settings-button"
+              onClick={() => {
+                setShowSettings(true);
+                handleFetchUserData();
+              }}
+            >
+              Settings
             </button>
           </div>
+        </div>
+      </div>
 
-          {/* Chat history overlay */}
-          {showChatHistory && (
-            <div className="chat-history-overlay">
-              <div className="chat-history-modal" ref={chatHistoryRef}>
-                <h2>Previous Chats</h2>
-                {/* List of previous chat sessions */}
-                <div className="chat-sessions-list">
-                  {sessions.map((session) => (
-                    <div
-                      key={session.session_id}
-                      className="chat-session-item"
-                      onClick={() => {
-                        handleLoadPreviousChat(session.session_id);
-                        setShowChatHistory(false);
-                      }}
-                    >
-                      {/* Session information display */}
-                      <div className="session-info">
-                        {renamingSessionId === session.session_id ? (
-                          // Rename input field
-                          <input
-                            type="text"
-                            value={newChatName}
-                            onChange={(e) => setNewChatName(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                handleRenameChat(
-                                  session.session_id,
-                                  newChatName
-                                );
-                              }
-                            }}
-                            placeholder="Enter new name"
-                            className="rename-input"
-                          />
-                        ) : (
-                          // Session name display
-                          <span className="session-name">
-                            {session.name || "Untitled Chat"}
-                          </span>
-                        )}
-                        {/* Session creation date */}
-                        <span className="session-date">
-                          {new Date(session.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-
-                      {/* Session action buttons */}
-                      <div className="session-actions">
-                        {renamingSessionId === session.session_id ? (
-                          // Rename mode actions
-                          <>
-                            <button
-                              className="rename-button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRenameChat(
-                                  session.session_id,
-                                  newChatName
-                                );
-                              }}
-                              title="Save"
-                            >
-                              Save
-                            </button>
-                            <button
-                              className="rename-button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRenamingSessionId(null);
-                                setNewChatName("");
-                              }}
-                              title="Cancel"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          // Normal mode actions
-                          <button
-                            className="rename-button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRenamingSessionId(session.session_id);
-                              setNewChatName(session.name || "");
-                            }}
-                            title="Rename chat"
-                          >
-                            ✎
-                          </button>
-                        )}
-                        {/* Delete session button */}
-                        <button
-                          className="delete-session-button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteChat(session.session_id);
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      {/* Main Container for side-by-side layout */}
+      <div className="flex flex-1 min-h-0 w-full">
+        {/* Chat Section */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Sub Header */}
+          <div className="app-header p-4">
+            <div className="flex justify-between items-center max-w-7xl mx-auto">
+              <button
+                onClick={() => setShowChatHistory(true)}
+                className="history-button px-4 py-2 text-white rounded-lg transition-all hover:scale-105"
+              >
+                Chat History
+              </button>
+              <button
+                onClick={handleStartNewChat}
+                className="history-button px-4 py-2 text-white rounded-lg transition-all hover:scale-105"
+              >
+                New Chat
+              </button>
             </div>
-          )}
+          </div>
 
-          {/* Chat messages display area */}
-          <div className="chat-messages" ref={chatMessagesRef}>
+          {/* Chat Messages */}
+          <div 
+            ref={chatMessagesRef}
+            className="chat-messages flex-1 overflow-y-auto scroll-smooth"
+          >
             {history.map((msg, index) => (
-              <div key={index} className={`message ${msg.role}`}>
-                <div className="message-content">{msg.content}</div>
+              <div
+                key={index}
+                className={`flex ${msg.role === 'human' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`message-bubble ${msg.role === 'human' ? 'human' : ''}`}
+                >
+                  {msg.content}
+                </div>
               </div>
             ))}
           </div>
 
-          {/* Chat input area */}
-          <div className="chat-input">
+          {/* Chat Input */}
+          <div className="input-container">
             <input
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleChat()}
+              onKeyDown={(e) => e.key === 'Enter' && handleChat()}
               placeholder="Type your message..."
+              className="chat-input"
             />
             <button
               onClick={handleChat}
               disabled={!message.trim() || !currentSessionId}
-              className="send-button"
+              className="history-button px-6 py-3 text-white rounded-lg transition-all hover:scale-105 disabled:opacity-50"
             >
               Send
             </button>
           </div>
         </div>
 
-        {/* Document search section */}
-        <div className="search-section">
-          <DocumentSearch token={token} />
+        {/* Divider */}
+        <div className="divider w-px" />
+
+        {/* Document Search Section */}
+        <div className={`flex-1 min-w-0 search-section ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
+          <DocumentSearch token={token} theme={theme} />
         </div>
       </div>
 
-      {/* Settings button and panel */}
-      {!showSettings ? (
-        <button
-          className="settings-button"
-          onClick={() => {
-            setShowSettings(true);
-            handleFetchUserData();
-            setIsEditingSettings(false);
-          }}
-        >
-          Settings
-        </button>
-      ) : (
-        <div className="settings-panel">
-          <div className="settings-header">
-            <button
-              className="settings-close"
-              onClick={() => setShowSettings(false)}
-              title="Close settings"
-            >
-              ×
-            </button>
-            <h3>User Settings</h3>
-          </div>
-          {/* Settings form */}
-          <div className="settings-form">
-            <div className="form-group">
-              <label>First Name</label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                disabled={!isEditingSettings}
-                className="settings-input"
-              />
-            </div>
-            <div className="form-group">
-              <label>Last Name</label>
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                disabled={!isEditingSettings}
-                className="settings-input"
-              />
-            </div>
-          </div>
-          <div className="settings-footer">
-            {isEditingSettings ? (
-              <button className="save-button" onClick={handleNameChange}>
-                Save
-              </button>
-            ) : (
+      {/* Modals */}
+      {showSettings && (
+        <div className="modal-backdrop fixed inset-0 flex items-center justify-center p-4 z-50">
+          <div className="modal-content p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold settings-label">User Settings</h3>
               <button
-                className="edit-button"
-                onClick={() => setIsEditingSettings(true)}
+                className="settings-close"
+                onClick={() => setShowSettings(false)}
               >
-                Edit
+                ×
               </button>
-            )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm settings-label">First Name</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  disabled={!isEditingSettings}
+                  className="settings-input w-full rounded-lg px-3 py-2"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm settings-label">Last Name</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  disabled={!isEditingSettings}
+                  className="settings-input w-full rounded-lg px-3 py-2"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              {isEditingSettings ? (
+                <button
+                  className="search-button px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
+                  onClick={handleNameChange}
+                >
+                  Save
+                </button>
+              ) : (
+                <button
+                  className=" px-4 py-2 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition-colors"
+                  onClick={() => setIsEditingSettings(true)}
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showChatHistory && (
+        <div className="modal-backdrop fixed inset-0 flex items-center justify-center p-4 z-50">
+          <div 
+            ref={chatHistoryRef}
+            className="modal-content"
+          >
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-100">Previous Chats</h2>
+            </div>
+            
+            <div className="overflow-y-auto max-h-[calc(80vh-8rem)]">
+              {sessions.map((session) => (
+                <div
+                  key={session.session_id}
+                  className="p-4 hover:bg-gray-700 transition-colors cursor-pointer"
+                  onClick={() => {
+                    handleLoadPreviousChat(session.session_id);
+                    setShowChatHistory(false);
+                  }}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      {renamingSessionId === session.session_id ? (
+                        <input
+                          type="text"
+                          value={newChatName}
+                          onChange={(e) => setNewChatName(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleRenameChat(session.session_id, newChatName);
+                            }
+                          }}
+                          className="bg-gray-600 text-gray-100 rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter new name"
+                        />
+                      ) : (
+                        <span className="text-gray-100">
+                          {session.name || "Untitled Chat"}
+                        </span>
+                      )}
+                      <span className="text-sm text-gray-400 block mt-1">
+                        {new Date(session.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {renamingSessionId === session.session_id ? (
+                        <>
+                          <button
+                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRenameChat(session.session_id, newChatName);
+                            }}
+                          >
+                            Save
+                          </button>
+                          <button
+                            className="px-3 py-1 bg-gray-600 text-gray-200 rounded-lg hover:bg-gray-500 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRenamingSessionId(null);
+                              setNewChatName("");
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="p-2 text-gray-400 hover:text-gray-200 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRenamingSessionId(session.session_id);
+                            setNewChatName(session.name || "");
+                          }}
+                        >
+                          ✎
+                        </button>
+                      )}
+                      <button
+                        className="p-2 text-red-400 hover:text-red-300 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteChat(session.session_id);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
