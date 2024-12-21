@@ -1,0 +1,85 @@
+├── LICENSE
+├── README.md
+├── backend
+│   ├── db_structure.txt
+│   ├── environment.yml
+│   ├── etl
+│   │   ├── apis
+│   │   │   └── federal_register_api.py
+│   │   ├── scrapers
+│   │   │   ├── whbriefingroom_loader.py
+│   │   │   ├── whgov_scraper.py
+│   │   │   └── whgov_summarizer.py
+│   │   └── tests
+│   │       ├── federal_register_indexer.ipynb
+│   │       ├── federal_register_test.ipynb
+│   │       ├── test_article_scrape.py
+│   │       ├── test_mongo_connection.py
+│   │       └── test_scraper_db.py
+│   ├── manage.py
+│   ├── myapp
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── consumers.py
+│   │   ├── middleware.py
+│   │   ├── models.py
+│   │   ├── rag_system.py
+│   │   ├── routing.py
+│   │   ├── serializers.py
+│   │   ├── tests
+│   │   │   ├── search_api_test.ipynb
+│   │   │   ├── test_consumers.py
+│   │   │   ├── test_rag_system.py
+│   │   │   └── test_views.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── policybot
+│   │   ├── __init__.py
+│   │   ├── asgi.py
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── wsgi.py
+│   └── rag_notebooks
+│       ├── generator_pinecone.ipynb
+│       ├── indexing_pinecone.ipynb
+│       ├── ragsys_test.ipynb
+│       ├── retrieval_pinecone.ipynb
+│       └── search_test.ipynb
+├── demo.png
+├── dump.rdb
+├── example_flow.txt
+└── frontend
+    ├── README.md
+    ├── package-lock.json
+    ├── package.json
+    ├── public
+    │   ├── favicon.ico
+    │   ├── index.html
+    │   ├── logo192.png
+    │   ├── logo512.png
+    │   ├── manifest.json
+    │   └── robots.txt
+    ├── src
+    │   ├── App.css
+    │   ├── App.js
+    │   ├── App.test.js
+    │   ├── components
+    │   │   ├── Auth
+    │   │   │   ├── Login.js
+    │   │   │   ├── Register.js
+    │   │   │   └── auth.css
+    │   │   ├── Chat
+    │   │   │   ├── Chat.css
+    │   │   │   └── Chat.js
+    │   │   └── DocumentSearch
+    │   │       ├── DocumentSearch.css
+    │   │       └── DocumentSearch.js
+    │   ├── index.css
+    │   ├── index.js
+    │   ├── logo.svg
+    │   ├── reportWebVitals.js
+    │   ├── services
+    │   │   └── api.js
+    │   └── setupTests.js
+    └── yarn.lock
