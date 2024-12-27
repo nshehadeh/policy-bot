@@ -13,6 +13,7 @@ from time import sleep
 import asyncio
 from typing import Optional
 import logging
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,7 @@ class OpenAIModel(BaseModel):
     """OpenAI GPT model implementation."""
 
     def get_model(self):
-        return ChatOpenAI(model="gpt-4o")
+        return ChatOpenAI(model="gpt-4o", temperature=0)
 
 
 class OpenAIEmbeddingsModel(BaseEmbeddings):
@@ -121,7 +122,7 @@ class QAPromptTemplate(BasePromptTemplate):
             "Use the following pieces of retrieved context to answer "
             "the question. If you don't know the answer, say that you "
             "don't know. Use three sentences maximum and keep the "
-            "answer concise. It is required to provide a one line source of the context metadata used at the end of your answer."
+            "answer concise. Give a one line summary of the context metadata used at the end of your answer"
             "\n\n"
             "{context}"
         )
@@ -134,7 +135,11 @@ class QAPromptTemplate(BasePromptTemplate):
             ]
         )
         return prompt
-
+    
+class StructurePromptTemplate(BasePromptTemplate):
+    def get_prompt_template(self) -> PromptTemplate:
+        template = "{input}"
+        return PromptTemplate.from_template(template)
 
 class ContextPromptTemplate(BasePromptTemplate):
     """Template for contextualizing questions based on chat history."""
@@ -209,17 +214,44 @@ class Generator:
         self.qa_prompt = qa_prompt_template
         self.context_q_prompt = context_q_prompt_template
         self.chat_history = chat_history
+        # Not in use right now
+        self.structure = {
+            "title": "rag_response",
+            "description": "Structured output from RAG system including answer and source documents",
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "string",
+                    "description": "The LLM's response to the query",
+                },
+                "document_titles": {
+                    "type": "array",
+                    "description": "Titles of documents used in generating the response",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "document_ids": {
+                    "type": "array",
+                    "description": "IDs of documents used in generating the response",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": ["answer", "document_titles", "document_ids"]
+        } 
+        self.structured_llm = self.llm.with_structured_output(self.structure)
 
-        self.question_answer_chain = create_stuff_documents_chain(
-            self.llm, self.qa_prompt
-        )
         self.history_aware_retriever = create_history_aware_retriever(
             self.llm, self.retriever, self.context_q_prompt
+        )
+        self.question_answer_chain = create_stuff_documents_chain(
+            self.structured_llm, self.qa_prompt
         )
         self.rag_chain = create_retrieval_chain(
             self.history_aware_retriever, self.question_answer_chain
         )
-
         self.conversational_rag_chain = RunnableWithMessageHistory(
             self.rag_chain,
             self.get_session_history,
@@ -228,11 +260,9 @@ class Generator:
             output_messages_key="answer",
         )
 
-    def invoke(self, question):
-        for chunk in self.conversational_rag_chain.stream({"input": question}):
-            if "answer" in chunk:
-                yield chunk["answer"]
-                sleep(0.2)
+    def invoke_test(self, question):
+        response = self.rag_chain.invoke({"input": question, "chat_history": []})
+        return "Success"
 
     async def invoke_async(self, question):
         """Asynchronously generate response with streaming.
@@ -443,3 +473,10 @@ class RAGSystem:
             chat_history: New chat history to load
         """
         self.generator.update_chat_history(chat_history)
+
+    def handle_chat_query_test(self, query: str) -> dict:
+        """Synchronous version of handle_chat_query for testing purposes."""
+        if not self._initialized:
+            self.initialize()
+        
+        return self.generator.invoke_test(query)

@@ -2,13 +2,13 @@
 
 /* Theme Variables */
 :root {
-  /* Base Sizes */
-  --base-font-size: 0.875rem;  /* ~14px */
-  --spacing-xs: 0.25rem;  /* 4px */
-  --spacing-sm: 0.5rem;   /* 8px */
-  --spacing-md: 0.75rem;  /* 12px */
-  --spacing-lg: 1rem;     /* 16px */
-  --spacing-xl: 1.5rem;   /* 24px */
+  /* Base Sizes - Scaled to 80% */
+  --base-font-size: 0.7rem;     /* ~11.2px (80% of 14px) */
+  --spacing-xs: 0.2rem;         /* 3.2px */
+  --spacing-sm: 0.4rem;         /* 6.4px */
+  --spacing-md: 0.6rem;         /* 9.6px */
+  --spacing-lg: 0.8rem;         /* 12.8px */
+  --spacing-xl: 1.2rem;         /* 19.2px */
 
   /* Light Theme Colors - More Muted */
   --light-bg: #f3f4f6;
@@ -101,7 +101,7 @@ body {
 
 /* Main Header */
 .main-header {
-  height: 3.5rem;
+  height: 4.5rem;
   border-bottom: 1px solid var(--light-border);
   backdrop-filter: blur(8px);
   display: flex;
@@ -209,14 +209,14 @@ body {
   color: var(--light-text);
   letter-spacing: -0.02em;
   line-height: 1.4;
-  font-size: calc(var(--base-font-size) * 1.1);
+  font-size: calc(var(--base-font-size) * 0.88);  
   margin-bottom: var(--spacing-xs);
 }
 
 .search-card div {
   color: var(--light-text-secondary);
   line-height: 1.6;
-  font-size: var(--base-font-size);
+  font-size: calc(var(--base-font-size) * 0.8);  
 }
 
 /* Message Container */
@@ -226,6 +226,7 @@ body {
   overflow-y: auto;
   padding: var(--spacing-md);
   min-height: 0;
+  font-size: 0.8rem;
 }
 
 .theme-dark .chat-messages {
@@ -411,18 +412,15 @@ body {
 }
 
 .theme-toggle {
-  padding: var(--spacing-sm);
-  border-radius: 0.25rem;
-  width:  3rem;
-  height: 1.5rem;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: black;
+  font-size: 1.5rem;
+  height: 2rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
 }
 
 .theme-toggle:hover {
@@ -431,18 +429,27 @@ body {
 
 /* Settings Button */
 .settings-button {
-  padding: var(--spacing-xs) var(--spacing-md);
-  border-radius: 0.75rem;
   font-weight: 500;
-  transition: all 0.2s ease;
-  background: var(--button-gradient);
-  color: white;
+  transition: all 0.3s ease;
+  background: linear-gradient(to bottom, rgba(128, 128, 128, 0.05), rgba(128, 128, 128, 0.1));
+  color: inherit;
   font-size: var(--base-font-size);
-  height: 2rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border: none;
 }
 
 .settings-button:hover {
-  transform: translateY(-2px);
+  background: linear-gradient(to bottom, rgba(128, 128, 128, 0.15), rgba(128, 128, 128, 0.25));
+}
+
+.theme-dark .settings-button {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.08));
+}
+
+.theme-dark .settings-button:hover {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.15));
 }
 
 /* Modern Scrollbar */
@@ -540,13 +547,16 @@ body {
 .document-modal {
   max-width: 600px;
 }
-
+.document-title{
+  font-size: calc(var(--base-font-size) * 1.2);
+  line-height: 1.4;
+}
 .document-modal-header {
   padding: var(--spacing-md);
 }
 
 .document-modal h2 {
-  font-size: calc(var(--base-font-size) * 1.2);
+  font-size: calc(var(--base-font-size) * 1.8);
 }
 
 /* Adjust heights for containers */

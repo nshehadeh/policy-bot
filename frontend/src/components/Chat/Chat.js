@@ -307,7 +307,7 @@ function Chat({ token }) {
           <h1>PolicyAI</h1>
           <div className="header-controls">
             <button
-              className="settings-button"
+              className="theme-toggle"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
             >
