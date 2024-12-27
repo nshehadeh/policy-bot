@@ -13,9 +13,11 @@ import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError
-from .rag_system import RAGSystem
 from asgiref.sync import sync_to_async
 import asyncio
+from rag.chat_graph import ChatGraph
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.messages import HumanMessage
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +33,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
     Attributes:
         user: The authenticated user for this connection
         session_id: UUID of the chat session
+        chat_graph: ChatGraph instance for this session
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.session_id = None
+        self.chat_graph = None
 
     async def connect(self) -> None:
         """
@@ -68,12 +72,32 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
             # Validate session ownership
-            from .models import ChatSession
+            from .models import ChatSession, ChatMessage
 
             try:
-                await sync_to_async(ChatSession.objects.get)(
+                self.chat_session = await sync_to_async(ChatSession.objects.get)(
                     session_id=self.session_id, user=self.user
                 )
+                
+                # Load existing chat history
+                chat_messages = await sync_to_async(list)(
+                    ChatMessage.objects.filter(session=self.chat_session).order_by("created_at")
+                )
+                
+                # Create chat history for the graph
+                history = ChatMessageHistory()
+                for message in chat_messages:
+                    if message.role == "human":
+                        history.add_user_message(message.content)
+                    elif message.role == "ai":
+                        history.add_ai_message(message.content)
+                
+                logger.info(f"Loaded {len(chat_messages)} messages for session {self.session_id}")
+                
+                # Initialize chat graph with loaded history
+                self.chat_graph = ChatGraph(chat_history=history)
+                logger.info(f"Initialized ChatGraph with {len(history.messages)} message history, for session {self.session_id}")
+                
             except ObjectDoesNotExist:
                 logger.warning(f"Invalid session access attempt: {self.session_id}")
                 await self.close(code=4004)
@@ -93,9 +117,33 @@ class ChatConsumer(AsyncWebsocketConsumer):
         Args:
             close_code: The code indicating why the connection was closed
         """
-        logger.info(
-            f"WebSocket disconnected: session={self.session_id}, code={close_code}"
-        )
+        try:
+            if self.chat_graph:
+                # Get new chats from the graph
+                new_chats = self.chat_graph.get_new_chats()
+                logger.info(f"Retrieved {len(new_chats)} new chats for session={self.session_id}")
+                
+                # Save new chats to database
+                from .models import ChatMessage
+                
+                saved_count = 0
+                for chat in new_chats:
+                    await sync_to_async(ChatMessage.objects.create)(
+                        session=self.chat_session,
+                        content=chat.content,
+                        role="human" if isinstance(chat, HumanMessage) else "ai"
+                    )
+                    saved_count += 1
+                    
+                logger.info(
+                    f"Successfully saved {saved_count} messages for session={self.session_id}"
+                )
+            
+            logger.info(
+                f"WebSocket disconnected: session={self.session_id}, code={close_code}"
+            )
+        except Exception as e:
+            logger.error(f"Error saving chat history: {str(e)}")
 
     async def send_error(self, message, code=None) -> None:
         """
@@ -115,15 +163,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         Handles the complete lifecycle of a chat message:
         1. Message parsing and validation
-        2. Session retrieval and validation
-        3. RAG system processing with streaming response
-        4. Message persistence in database
+        2. ChatGraph processing with streaming response
+        3. Message streaming to client
 
         Error Codes:
             INVALID_FORMAT: Message parsing failed
-            SESSION_NOT_FOUND: Chat session not found
-            DATABASE_ERROR: Database operation failed
-            SAVE_ERROR: Failed to save chat messages
             SYSTEM_ERROR: Unexpected system error
 
         Args:
@@ -141,28 +185,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             logger.info(f"Processing message: session={self.session_id}")
 
-            # Get chat session
-            try:
-                from .models import ChatSession, ChatMessage
-
-                chat_session = await sync_to_async(ChatSession.objects.get)(
-                    session_id=self.session_id, user=self.user
-                )
-            except ObjectDoesNotExist:
-                logger.error(f"Chat session not found: {self.session_id}")
-                await self.send_error("Chat session not found", "SESSION_NOT_FOUND")
-                return
-            except DatabaseError as e:
-                logger.error(f"Database error: {str(e)}")
-                await self.send_error("Database error occurred", "DATABASE_ERROR")
+            if not self.chat_graph:
+                logger.error("ChatGraph not initialized")
+                await self.send_error("System error occurred", "SYSTEM_ERROR")
                 return
 
-            # Process with RAG system
+            # Process with ChatGraph
             try:
-                rag_system = RAGSystem()
-                full_response = ""
-                async for chunk in rag_system.handle_chat_query(query):
-                    full_response += chunk
+                logger.info(f"Starting ChatGraph processing for query: session={self.session_id}")
+                async for chunk in self.chat_graph.process_query_async(query):
                     await self.send(
                         json.dumps(
                             {
@@ -171,6 +202,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             }
                         )
                     )
+
                 # Success response
                 await self.send(
                     text_data=json.dumps(
@@ -179,30 +211,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 )
                 logger.info(f"Message finished successfully: session={self.session_id}")
 
-                # Save messages
-                try:
-                    await sync_to_async(ChatMessage.objects.create)(
-                        session=chat_session, role="human", content=query
-                    )
-                    await sync_to_async(ChatMessage.objects.create)(
-                        session=chat_session, role="ai", content=full_response
-                    )
-                    logger.info(
-                        f"Message processed successfully: session={self.session_id}"
-                    )
 
-                except DatabaseError as e:
-                    logger.error(f"Failed to save chat messages: {str(e)}")
-                    await self.send_error("Failed to save messages", "SAVE_ERROR")
-                    return
-
-            except asyncio.CancelledError:
-                logger.info(f"Client cancelled request: session={self.session_id}")
-                raise
             except Exception as e:
-                logger.error(f"Unexpected error in RAG system: {str(e)}")
-                await self.send_error("An unexpected error occurred", "SYSTEM_ERROR")
+                logger.error(f"Chat processing error: {str(e)}")
+                await self.send_error("Failed to process chat", "SYSTEM_ERROR")
+                return
 
         except Exception as e:
             logger.error(f"Unexpected error in receive: {str(e)}")
-            await self.send_error("An unexpected error occurred", "SYSTEM_ERROR")
+            await self.send_error("System error occurred", "SYSTEM_ERROR")

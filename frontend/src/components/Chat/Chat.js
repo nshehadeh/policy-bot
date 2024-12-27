@@ -150,6 +150,13 @@ function Chat({ token }) {
     aiMessageRef.current = "";
     setHistory((prev) => [...prev, { role: "human", content: message }]);
 
+    // Move current session to top of list since it's being used
+    setSessions(prevSessions => {
+      const selectedSession = prevSessions.find(s => s.session_id === currentSessionId);
+      const otherSessions = prevSessions.filter(s => s.session_id !== currentSessionId);
+      return [selectedSession, ...otherSessions];
+    });
+
     // Send message through WebSocket if connection is open
     if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
       websocket.current.send(

@@ -288,25 +288,18 @@ class LoadPreviousChatView(BaseAPIView):
             chat_session = get_object_or_404(
                 ChatSession, session_id=session_id, user=request.user
             )
+            # Update the created_at timestamp to move this session to the top
+            chat_session.save(update_fields=['created_at'])
             chat_history = ChatMessage.objects.filter(session=chat_session).order_by(
                 "created_at"
             )
-            logger.info(f"Found {len(chat_history)} messages for session {session_id}")
-
-            rag_system = RAGSystem()
+            logger.info(f"Found {len(chat_history)} messages for session {session_id} for frontend")
             history = ChatMessageHistory()
-
             for message in chat_history:
                 if message.role == "human":
                     history.add_user_message(message.content)
                 elif message.role == "ai":
                     history.add_ai_message(message.content)
-
-            logger.info(
-                f"Loading chat history into RAG system for session {session_id}"
-            )
-            rag_system.load_memory(history)
-
             chat_history_data = [
                 {"role": message.role, "content": message.content}
                 for message in chat_history

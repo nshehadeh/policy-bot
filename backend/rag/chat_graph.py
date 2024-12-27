@@ -1,14 +1,19 @@
 """Chat graph implementation for conversational RAG."""
 
-from typing import Optional, Literal, AsyncGenerator
+from typing import Optional, Literal, AsyncGenerator, List
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
+from langchain_pinecone import PineconeVectorStore
 from langgraph.graph import MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.graph import END, START
 from langchain_community.chat_message_histories import ChatMessageHistory
 from IPython.display import Image
 from langchain_core.tools import tool
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
+from langchain.tools.retriever import create_retriever_tool
+from IPython.display import Image
 from pydantic import BaseModel, Field
 import asyncio
 
@@ -24,13 +29,12 @@ from .base import (
     DirectResponsePromptTemplate,
     GraderPromptTemplate
 )
-
-
+"""
 def create_retrieve_tool(vector_store: BaseVectorStore):
-    """Create a retrieve tool bound to a specific vector store."""
+    #Create a retrieve tool bound to a specific vector store.
     @tool(response_format="content_and_artifact")
     async def retrieve(query: str) -> tuple:
-        """Retrieve relevant documents."""
+        #Retrieve relevant documents.
         retrieved_docs = await vector_store.similarity_search(query, k=6)
         serialized = "\n\n".join(
             (f"Source: {doc.metadata}\n" f"Content: {doc.page_content}")
@@ -39,6 +43,20 @@ def create_retrieve_tool(vector_store: BaseVectorStore):
         return serialized, retrieved_docs
     return retrieve
 
+"""
+class AsyncVectorStoreRetriever(BaseRetriever):
+    """Async wrapper for vector store retrieval."""
+    
+    vector_store: PineconeVectorStore
+
+    async def _aget_relevant_documents(self, query: str) -> List[Document]:
+        """Async retrieval of relevant documents."""
+        docs = await self.vector_store.asimilarity_search(query, k=6)
+        return docs
+
+    def _get_relevant_documents(self, query: str) -> List[Document]:
+        """Sync version - not used but required by interface."""
+        raise NotImplementedError("Use aget_relevant_documents instead")
 
 class ChatGraph(BaseRAGGraph):
     """Handles conversational RAG with history."""
@@ -55,7 +73,14 @@ class ChatGraph(BaseRAGGraph):
     ):
         super().__init__(model, embeddings, vector_store)
         self.chat_history = chat_history
-        self.retrieve_tool = create_retrieve_tool(self.vector_store)
+        
+        # Create async retriever
+        async_retriever = AsyncVectorStoreRetriever(vector_store=self.vector_store)
+        self.retrieve_tool = create_retriever_tool(
+            retriever=async_retriever,
+            name="search_documents",
+            description="Search through documents to find relevant information"
+        )
 
         self.history_prompt = HistoryPromptTemplate().get_prompt_template()
         self.rewrite_prompt = RewritePromptTemplate().get_prompt_template()
@@ -69,7 +94,7 @@ class ChatGraph(BaseRAGGraph):
         
     def _update_new_chats(self, chat: HumanMessage or AIMessage):
         """Update the chat history."""
-        self.new_chats += chat
+        self.new_chats.append(chat)
         
     async def _history(self, state):
         """Process chat history for context."""
@@ -78,6 +103,7 @@ class ChatGraph(BaseRAGGraph):
         question = messages[0].content
         assert question == messages[-1].content
         response = await chain.ainvoke({"chat_history": self.chat_history, "question": question})
+        self.chat_history.add_user_message(response.content)
         return {"messages": [response]}
 
     async def _grade_documents(self, state) -> Literal["rewrite", "generate", "direct_response"]:
@@ -136,6 +162,7 @@ class ChatGraph(BaseRAGGraph):
         gen_chain = self.generate_prompt | self.llm | StrOutputParser()
 
         response = await gen_chain.ainvoke({"context": docs_content, "question": question})
+        self.chat_history.add_ai_message(response)
         return {"messages": [response]}
     
     async def _direct_response(self, state):
@@ -202,7 +229,7 @@ class ChatGraph(BaseRAGGraph):
         """Override string representation to display graph visualization."""
         return Image(self.get_compiled_graph().get_graph(xray=True).draw_mermaid_png())
 
-    def process_query(self, query: str):
+    def process_query_test(self, query: str):
         """Synchronous query processing - mainly for testing."""
         self.retrieval_attempts = 0
         inputs = {"messages": [HumanMessage(content=query)]}
@@ -213,8 +240,12 @@ class ChatGraph(BaseRAGGraph):
     async def process_query_async(self, query: str) -> AsyncGenerator[str, None]:
         """Asynchronously process a query and stream responses."""
         self.retrieval_attempts = 0
+        self._update_new_chats(HumanMessage(content=query))
+        final_response = ""
         inputs = {"messages": [HumanMessage(content=query)]}
         async for msg, metadata in self.graph.astream(inputs, stream_mode="messages"):
             if msg.content and metadata["langgraph_node"] == "generate" or metadata["langgraph_node"] == "direct_response":
                 yield msg.content
-                await asyncio.sleep(0.1)  # Small delay to prevent overwhelming the websocket
+                final_response += msg.content
+                await asyncio.sleep(0.1)
+        self._update_new_chats(AIMessage(content=final_response))

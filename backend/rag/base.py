@@ -103,7 +103,7 @@ class GraderPromptTemplate(BasePromptTemplate):
         Here is the retrieved document: \n\n {context} \n\n
         Here is the user question: {question} \n
         If the document contains keyword(s) or semantic meaning related to the user question, grade it as relevant. \n
-        Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question."""
+        Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question. Be extremely liberal in your judgement. Lean more towards giving yes if the document is a little relevant. \n"""
         return PromptTemplate(
             template=template, input_variables=["context", "question"]
         )
