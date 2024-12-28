@@ -23,12 +23,14 @@ from .base import (
     BaseLLMModel,
     BaseEmbeddings,
     BaseVectorStore,
+    VectorStoreRetriever,
     HistoryPromptTemplate,
     RewritePromptTemplate,
     GenerateAnswerPromptTemplate,
     DirectResponsePromptTemplate,
     GraderPromptTemplate
 )
+
 """
 def create_retrieve_tool(vector_store: BaseVectorStore):
     #Create a retrieve tool bound to a specific vector store.
@@ -44,7 +46,7 @@ def create_retrieve_tool(vector_store: BaseVectorStore):
     return retrieve
 
 """
-class AsyncVectorStoreRetriever(BaseRetriever):
+class VectorStoreRetriever(BaseRetriever):
     """Async wrapper for vector store retrieval."""
     
     vector_store: PineconeVectorStore
@@ -56,8 +58,9 @@ class AsyncVectorStoreRetriever(BaseRetriever):
 
     def _get_relevant_documents(self, query: str) -> List[Document]:
         """Sync version - not used but required by interface."""
-        raise NotImplementedError("Use aget_relevant_documents instead")
-
+        docs = self.vector_store.similarity_search(query, k=6)
+        return docs
+    
 class ChatGraph(BaseRAGGraph):
     """Handles conversational RAG with history."""
 
@@ -75,7 +78,7 @@ class ChatGraph(BaseRAGGraph):
         self.chat_history = chat_history
         
         # Create async retriever
-        async_retriever = AsyncVectorStoreRetriever(vector_store=self.vector_store)
+        async_retriever = VectorStoreRetriever(vector_store=self.vector_store)
         self.retrieve_tool = create_retriever_tool(
             retriever=async_retriever,
             name="search_documents",
@@ -162,7 +165,6 @@ class ChatGraph(BaseRAGGraph):
         gen_chain = self.generate_prompt | self.llm | StrOutputParser()
 
         response = await gen_chain.ainvoke({"context": docs_content, "question": question})
-        self.chat_history.add_ai_message(response)
         return {"messages": [response]}
     
     async def _direct_response(self, state):
@@ -248,4 +250,6 @@ class ChatGraph(BaseRAGGraph):
                 yield msg.content
                 final_response += msg.content
                 await asyncio.sleep(0.1)
-        self._update_new_chats(AIMessage(content=final_response))
+        final_response = AIMessage(content=final_response)
+        self._update_new_chats(final_response)
+        self.chat_history.add_ai_message(final_response)

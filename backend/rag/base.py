@@ -1,13 +1,15 @@
 """Base classes and shared functionality for RAG system."""
 
 import os
-from typing import Optional
+from typing import Optional, List
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_core.tools import tool
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
 
 
 class BaseLLMModel:
@@ -88,6 +90,7 @@ class HistoryPromptTemplate(BasePromptTemplate):
         just reformulate it if needed and otherwise return it as is. 
         Here is the chat history: \n\n {chat_history} \n\n
         Here is the latest user question: {question} \n\n
+        
         """
         return PromptTemplate(
             template=template, input_variables=["chat_history", "question"]
@@ -120,7 +123,9 @@ class RewritePromptTemplate(BasePromptTemplate):
         {question} 
         \n ------- \n
         Formulate a new question that is specific and deatiled to help with document retrieval. 
-        Focus on key terms and concepts that might appear in relevant documents: """
+        Focus on key terms and concepts that might appear in relevant documents. 
+        If you believe the query is too broad to rewrite in a way that will retrieve relevant documents, 
+        tell the agent to give a direct response. \n"""
         return PromptTemplate(template=template, input_variables=["question"])
 
 
@@ -165,8 +170,10 @@ class DirectResponsePromptTemplate(BasePromptTemplate):
     """Template for generating a direct response."""
     def get_prompt_template(self) -> PromptTemplate:
         template="""You are a focused assistant that only provides brief, targeted responses.
-        Provide a two sentence response that politely explains you can only answer questions about the specific content in our knowledge base which provides information about American policy .
-        Do not provide any other information or engage in general conversation.
+        Provide a concise sentence response that either:
+        1) If the question is unrelated to policy, politely explains you can only answer questions about the specific content in our knowledge base which provides information about American policy .
+        2) If the question is too general to retrieve relevant information, asks for more details or offer inspiration for a new question.
+        You can provide other information or general conversation if it is relevant to the goal of informing users about policy impacts, changes, or something else related.
         
         User question: {question}
         
@@ -206,3 +213,19 @@ class BaseRAGGraph:
 
         os.environ["LANGCHAIN_TRACING_V2"] = "true"
         os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
+
+
+class VectorStoreRetriever(BaseRetriever):
+    """Base retriever class for vector store operations."""
+    
+    vector_store: PineconeVectorStore
+
+    async def _aget_relevant_documents(self, query: str) -> List[Document]:
+        """Async retrieval of relevant documents."""
+        docs = await self.vector_store.asimilarity_search(query, k=6)
+        return docs
+
+    def _get_relevant_documents(self, query: str) -> List[Document]:
+        """Sync version for non-async operations."""
+        docs = self.vector_store.similarity_search(query, k=6)
+        return docs
