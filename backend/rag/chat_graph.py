@@ -61,6 +61,8 @@ class VectorStoreRetriever(BaseRetriever):
         docs = self.vector_store.similarity_search(query, k=6)
         return docs
     
+
+    
 class ChatGraph(BaseRAGGraph):
     """Handles conversational RAG with history."""
 

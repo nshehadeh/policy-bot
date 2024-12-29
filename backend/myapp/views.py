@@ -25,10 +25,9 @@ from .serializers import (
     UserSerializer,
     UpdateSettingsSerializer,
 )
-from .rag_system import RAGSystem
+from .models import ChatSession, ChatMessage
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
-from .models import ChatSession, ChatMessage
 from django.contrib.auth.models import User
 from bson import ObjectId
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -37,6 +36,7 @@ from pymongo import MongoClient
 import os
 from django.db import DatabaseError
 import logging
+from rag.search_graph import SearchGraph
 
 logger = logging.getLogger(__name__)
 
@@ -511,11 +511,11 @@ class DocumentSearchView(BaseAPIView):
             logger.info(f"Processing search request. Query: '{query}'")
 
             if query:
-                # RAG system search
+                # Search graph implementation
                 try:
-                    rag_system = RAGSystem()
-                    doc_ids = rag_system.handle_search_query(query)
-                    logger.info(f"RAG system returned {len(doc_ids)} document IDs")
+                    search_graph = SearchGraph()
+                    doc_ids = search_graph.process_query(query)
+                    logger.info(f"Search graph returned {len(doc_ids)} document IDs")
 
                     # Convert to ObjectIds
                     object_ids = [

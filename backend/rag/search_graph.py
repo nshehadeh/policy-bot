@@ -8,13 +8,16 @@ from langgraph.graph import MessagesState, StateGraph
 from langchain_pinecone import PineconeVectorStore
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.graph import END, START
-from langchain.tools.retriever import create_retriever_tool
 from pydantic import BaseModel, Field
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
 from IPython.display import Image
-
-
+from langchain_core.tools.simple import Tool
+from langchain_core.prompts import PromptTemplate
+from typing import Dict
+import logging
+from langchain.tools.retriever import RetrieverInput
+logger = logging.getLogger(__name__)
 
 from .base import (
     BaseRAGGraph,
@@ -23,9 +26,8 @@ from .base import (
     BaseVectorStore,
     QuerySearchPromptTemplate,
     RewritePromptTemplate,
-    GenerateAnswerPromptTemplate,
-    DirectResponsePromptTemplate,
-    GraderPromptTemplate
+    GraderPromptTemplate,
+    BasePromptTemplate,
 )
 
 class ExtState(MessagesState):
@@ -44,8 +46,38 @@ class VectorStoreRetriever(BaseRetriever):
     def _get_relevant_documents(self, query: str) -> List[Document]:
         """Sync retrieval of relevant documents."""
         docs = self.vector_store.similarity_search(query, k=6)
-        print(f"{len(docs)} documents retrieved in retriever")
         return docs
+    
+    def get_retriever_tool(self, name: str, description: str, document_prompt: Optional[BasePromptTemplate] = None) -> Tool:
+        """Create a tool for this retriever."""
+                
+        def sync_func(query: str) -> Dict[str, any]:
+            """Sync function for retrieval."""
+            docs = self._get_relevant_documents(query)
+            doc_list = [{"content": doc.page_content, "metadata": doc.metadata} for doc in docs]
+            combined_string = "\n\n".join(doc["content"] for doc in doc_list)
+            return {
+                "documents": docs,
+                "combined_string": combined_string,
+            }
+
+        async def async_func(query: str) -> Dict[str, any]:
+            """Async function for retrieval."""
+            docs = await self._aget_relevant_documents(query)
+            doc_list = [{"content": doc.page_content, "metadata": doc.metadata} for doc in docs]
+            combined_string = "\n\n".join(doc["content"] for doc in doc_list)
+            return {
+                "documents": docs,
+                "combined_string": combined_string,
+            }
+        
+        return Tool(
+            name=name,
+            description=description,
+            func=sync_func,
+            coroutine=async_func,
+            args_schema=RetrieverInput,
+        )
     
 class SearchGraph(BaseRAGGraph):
     """Singleton search graph for document retrieval."""
@@ -77,8 +109,7 @@ class SearchGraph(BaseRAGGraph):
 
             # Create sync retriever
             self.sync_retriever = VectorStoreRetriever(vector_store=self.vector_store)
-            self.retrieve_tool = create_retriever_tool(
-                retriever=self.sync_retriever,
+            self.retrieve_tool = self.sync_retriever.get_retriever_tool(
                 name="search_documents",
                 description="Search through documents to find relevant information"
             )
@@ -100,27 +131,20 @@ class SearchGraph(BaseRAGGraph):
 
     def _retrieve(self, state):
         """Decide whether to retrieve or respond."""
-        print("Query: ", state["messages"][-1].content)
         documents = self.retrieve_tool.invoke(state["messages"][-1].content)
-        print(f"{len(documents)} documents retrieved")
-        print(f"Document type: {type(documents)}")
-        return {"doc_ids": [doc.metadata["id"] for doc in documents]}
+        return {"messages": [documents["combined_string"]], "doc_ids": [doc.metadata["id"] for doc in documents["documents"]]}
     
     def _setup_workflow(self) -> StateGraph:
         """Set up the search workflow with conditional branching."""
         workflow = StateGraph(ExtState)
 
-        # Add nodes
         workflow.add_node("expand_query", self._expand_query)
         workflow.add_node("retrieve", self._retrieve)
-        #workflow.add_node("retrieve", tools)
-        #workflow.add_node("rewrite", self._rewrite)
-        #workflow.add_node("respond", self._respond)
 
-        # Add edges with conditional branching
         workflow.add_edge(START, "expand_query")
         workflow.add_edge("expand_query", "retrieve")
         workflow.add_edge("retrieve", END)
+        
         return workflow.compile()
         
     def get_compiled_graph(self):
@@ -130,7 +154,7 @@ class SearchGraph(BaseRAGGraph):
         """Override string representation to display graph visualization."""
         return Image(self.get_compiled_graph().get_graph(xray=True).draw_mermaid_png())
     
-    def process_query(self, query: str, context: Optional[dict] = None):
+    def process_query(self, query: str):
         """Process a search query through the workflow.
 
         Args:
@@ -139,5 +163,9 @@ class SearchGraph(BaseRAGGraph):
         """
         # self.retrieval_attempts = 0  # Reset counter
         inputs = {"messages": [HumanMessage(content=query)], "doc_ids": []}
-        for state, meta in self.graph.stream(inputs, stream_mode="values"):
-            print(f"State: {state}, Meta: {meta}")
+        logger.info("Processing search query")
+        for step in self.graph.stream(inputs, stream_mode="values"):
+            if len(step["doc_ids"] )>0:
+                logger.info(f"Search completed successfully with {len(step["doc_ids"])} results")
+                return step["doc_ids"]
+            
