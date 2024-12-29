@@ -193,15 +193,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Process with ChatGraph
             try:
                 logger.info(f"Starting ChatGraph processing for query: session={self.session_id}")
-                async for chunk in self.chat_graph.process_query_async(query):
-                    await self.send(
-                        json.dumps(
-                            {
-                                "type": "chunk",
-                                "chunk": chunk,
-                            }
-                        )
-                    )
+                async for message in self.chat_graph.process_query_async(query):
+                    await self.send(json.dumps(message))
 
                 # Success response
                 await self.send(

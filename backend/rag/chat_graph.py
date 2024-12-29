@@ -16,6 +16,7 @@ from langchain.tools.retriever import create_retriever_tool
 from IPython.display import Image
 from pydantic import BaseModel, Field
 import asyncio
+import json
 
 
 from .base import (
@@ -241,15 +242,20 @@ class ChatGraph(BaseRAGGraph):
             if (msg.content and metadata["langgraph_node"] == "generate"):
                 print(msg.content, flush=True)
 
-    async def process_query_async(self, query: str) -> AsyncGenerator[str, None]:
+    async def process_query_async(self, query: str) -> AsyncGenerator[dict, None]:
         """Asynchronously process a query and stream responses."""
         self.retrieval_attempts = 0
         self._update_new_chats(HumanMessage(content=query))
         final_response = ""
         inputs = {"messages": [HumanMessage(content=query)]}
+        last_node = None
         async for msg, metadata in self.graph.astream(inputs, stream_mode="messages"):
+            cur_node = metadata["langgraph_node"]
+            if cur_node != last_node:
+                yield {"type": "step", "step": cur_node}
+                last_node = cur_node
             if msg.content and metadata["langgraph_node"] == "generate" or metadata["langgraph_node"] == "direct_response":
-                yield msg.content
+                yield {"type": "chunk", "chunk": msg.content}
                 final_response += msg.content
                 await asyncio.sleep(0.1)
         final_response = AIMessage(content=final_response)

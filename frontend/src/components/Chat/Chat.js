@@ -16,11 +16,24 @@ function Chat({ token }) {
   const [showChatHistory, setShowChatHistory] = useState(false);
   const [renamingSessionId, setRenamingSessionId] = useState(null);
   const [newChatName, setNewChatName] = useState("");
+  const [currentStep, setCurrentStep] = useState(null);
   const websocket = useRef(null);
   const aiMessageRef = useRef("");
   const chatMessagesRef = useRef(null);
   const chatHistoryRef = useRef(null);
   const [theme, setTheme] = useState('dark');
+
+  // Step to display text mapping
+  const stepDisplayMap = {
+    history: "Analyzing Chat Context",
+    grade_documents: "Evaluating Sources",
+    agent: "Planning Response",
+    rewrite: "Refining Query",
+    retrieve: "Retrieving Documents",
+    generate: "Generating Response",
+    direct_response: "Generating Response",
+    end: "Done"
+  };
 
   // Automatically scroll chat to the bottom when new messages arrive
   const scrollToBottom = () => {
@@ -81,25 +94,38 @@ function Chat({ token }) {
       // Handle incoming messages from AI
       websocket.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.type === "complete") return; // Return after completion messages
-        aiMessageRef.current += data.chunk; // Accumulate AI response
-        console.log(data.chunk);
+        if (data.type === "complete") {
+          setCurrentStep("end")
+          return;
+        }
 
-        // Update chat history with AI response
-        setHistory((prev) => {
-          const newHistory = [...prev];
-          if (
-            newHistory.length &&
-            newHistory[newHistory.length - 1]?.role === "ai"
-          ) {
-            // Update existing AI message if it's the last message
-            newHistory[newHistory.length - 1].content = aiMessageRef.current;
-          } else {
-            // Add new AI message otherwise
-            newHistory.push({ role: "ai", content: data.chunk });
-          }
-          return newHistory;
-        });
+        if (data.type === "step") {
+          setCurrentStep(data.step);
+          // Create an empty AI message if this is the first step and there's no AI message yet
+          setHistory((prev) => {
+            if (!prev.length || prev[prev.length - 1].role !== "ai") {
+              return [...prev, { role: "ai", content: "" }];
+            }
+            return prev;
+          });
+          return;
+        }
+
+        if (data.type === "chunk") {
+          aiMessageRef.current += data.chunk;
+          setHistory((prev) => {
+            const newHistory = [...prev];
+            if (
+              newHistory.length &&
+              newHistory[newHistory.length - 1]?.role === "ai"
+            ) {
+              newHistory[newHistory.length - 1].content = aiMessageRef.current;
+            } else {
+              newHistory.push({ role: "ai", content: data.chunk });
+            }
+            return newHistory;
+          });
+        }
       };
 
       // Connection closure handler
@@ -368,6 +394,18 @@ function Chat({ token }) {
                 <div
                   className={`message-bubble ${msg.role === 'human' ? 'human' : ''}`}
                 >
+                  {msg.role === "ai" && currentStep && index === history.length - 1 && (
+                    <div className="ai-step">
+                      <span>{stepDisplayMap[currentStep] || currentStep}</span>
+                      {currentStep !== "end" && (
+                        <div className="loading-dots">
+                          <div></div>
+                          <div></div>
+                          <div></div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {msg.content}
                 </div>
               </div>
