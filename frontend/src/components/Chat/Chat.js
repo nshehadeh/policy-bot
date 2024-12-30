@@ -4,7 +4,7 @@ import api from "../../services/api";
 //import "./Chat.css";
 import "./MChat.css";
 
-function Chat({ token }) {
+function Chat({ token, theme }) {
   const [message, setMessage] = useState("");
   const [history, setHistory] = useState([]);
   const [firstName, setFirstName] = useState("");
@@ -21,7 +21,7 @@ function Chat({ token }) {
   const aiMessageRef = useRef("");
   const chatMessagesRef = useRef(null);
   const chatHistoryRef = useRef(null);
-  const [theme, setTheme] = useState('dark');
+  // const [theme, setTheme] = useState('dark');
 
   // Step to display text mapping
   const stepDisplayMap = {
@@ -333,32 +333,8 @@ function Chat({ token }) {
   }, [showChatHistory]);
 
   return (
-    <div className={`flex flex-col h-screen overflow-hidden theme-${theme}`}>
-      {/* Main Header */}
-      <div className="main-header shrink-0">
-        <div className="main-header-content">
-          <h1>PolicyAI</h1>
-          <div className="header-controls">
-            <button
-              className="theme-toggle"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-            >
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-            <button
-              className="settings-button"
-              onClick={() => {
-                setShowSettings(true);
-                handleFetchUserData();
-              }}
-            >
-              Settings
-            </button>
-          </div>
-        </div>
-      </div>
-
+    
+    <div className={`flex flex-col chat-tab overflow-hidden theme-${theme}`}>
       {/* Main Container for side-by-side layout */}
       <div className="flex flex-1 min-h-0 w-full">
         {/* Chat Section */}

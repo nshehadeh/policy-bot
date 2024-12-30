@@ -1,0 +1,80 @@
+.home {
+  padding-top: 64px; /* Account for fixed navbar */
+  min-height: 100vh;
+  background: var(--light-bg);
+}
+
+.dark .home {
+  background: var(--dark-bg);
+}
+
+.home-content {
+  margin: 0 auto;
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.home h1 {
+  font-size: 6rem;
+  color: var(--light-text);
+  margin-bottom: var(--spacing-lg);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 300;
+}
+
+.home p {
+  color: var(--light-text-secondary);
+  font-size: 1.2rem;
+  margin-bottom: var(--spacing-xl);
+}
+
+.dark .home p {
+  color: var(--dark-text-secondary);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-xl);
+  margin-top: var(--spacing-xl);
+}
+
+.feature-card {
+  background: var(--light-card);
+  border: 1px solid var(--light-border);
+  border-radius: 12px;
+  padding: var(--spacing-xl);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dark .feature-card {
+  background: var(--dark-card);
+  border-color: var(--dark-border);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.feature-card h3 {
+  color: var(--light-text);
+  margin-bottom: var(--spacing-md);
+  font-size: 1.2rem;
+}
+
+.dark .feature-card h3 {
+  color: var(--dark-text);
+}
+
+.feature-card p {
+  color: var(--light-text-secondary);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.dark .feature-card p {
+  color: var(--dark-text-secondary);
+}

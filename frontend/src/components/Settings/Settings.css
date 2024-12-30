@@ -1,0 +1,133 @@
+.settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.settings-modal {
+  background: var(--light-card);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: var(--shadow-lg);
+}
+
+.dark .settings-modal {
+  background: var(--dark-card);
+  border: 1px solid var(--dark-border);
+}
+
+.settings-header {
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--light-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dark .settings-header {
+  border-color: var(--dark-border);
+}
+
+.settings-header h2 {
+  margin: 0;
+  color: var(--light-text);
+}
+
+.dark .settings-header h2 {
+  color: var(--dark-text);
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--light-text-secondary);
+}
+
+.dark .close-button {
+  color: var(--dark-text-secondary);
+}
+
+.settings-content {
+  padding: var(--spacing-xl);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.form-group label {
+  color: var(--light-text);
+  font-weight: 500;
+}
+
+.dark .form-group label {
+  color: var(--dark-text);
+}
+
+.form-group input {
+  padding: var(--spacing-md);
+  border: 1px solid var(--light-border);
+  border-radius: 6px;
+  background: var(--light-input);
+  color: var(--light-text);
+}
+
+.dark .form-group input {
+  background: var(--dark-bg);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+.form-group input:disabled {
+  background: var(--light-bg);
+  cursor: not-allowed;
+}
+
+.dark .form-group input:disabled {
+  background: var(--dark-bg);
+}
+
+.settings-actions {
+  margin-top: var(--spacing-xl);
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+}
+
+.settings-actions button {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.settings-actions button:last-child {
+  background: var(--light-bg);
+  color: var(--light-text);
+}
+
+.dark .settings-actions button:last-child {
+  background: var(--dark-bg);
+  color: var(--dark-text);
+}

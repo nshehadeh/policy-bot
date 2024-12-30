@@ -6,9 +6,18 @@ html, body {
   overflow: hidden;
 }
 
-.App {
+.app {
   font-family: Arial, sans-serif;
   text-align: center;
+  min-height: 100vh;
+  background: var(--light-bg);
+  color: var(--light-text);
+  padding-top: 50px; /* Match navbar height */
+}
+
+.app.dark {
+  background: var(--dark-bg);
+  color: var(--dark-text);
 }
 
 input {
@@ -29,4 +38,11 @@ h2 {
 p {
   font-size: 1.4em;
   color: #333;
+}
+
+.content {
+  height: calc(100vh - 50px); /* Full height minus navbar */
+  overflow-y: auto;
+  padding: var(--spacing-xl);
+  margin: 0 auto;
 }

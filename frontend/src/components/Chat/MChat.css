@@ -77,7 +77,9 @@ body {
   min-height: 0;
   width: 100%;
 }
-
+.chat-tab{
+  height: calc(100vh - 48px);
+}
 .chat-section, .search-section {
   flex: 1;
   display: flex;
@@ -561,7 +563,7 @@ body {
 
 /* Adjust heights for containers */
 .chat-container, .document-container {
-  height: calc(100vh - 150px);
+  height: calc(100vh - 48px);
 }
 
 .search-content {

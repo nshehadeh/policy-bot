@@ -18,9 +18,7 @@ const DocumentSearch = ({ token, theme }) => {
       try {
         const response = await api.get(
           `/search/?query=${encodeURIComponent(searchQuery)}`,
-          {
-            headers: { Authorization: `Token ${token}` },
-          }
+
         );
         setResults(response.data.results || []); // Update results, default to empty array if null
       } catch (error) {

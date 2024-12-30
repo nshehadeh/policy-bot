@@ -1,0 +1,104 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: var(--spacing-sm) var(--spacing-xl);
+  border-bottom: 1px solid var(--light-border);
+  background: var(--light-header);
+  height: 50px; /* Smaller fixed height */
+  display: flex;
+  align-items: center;
+}
+
+.nav-content {
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+}
+
+.nav-brand h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.nav-links {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.nav-button, .nav-link {
+  font-weight: 500;
+  transition: all 0.3s ease;
+  color: inherit;
+  font-size: var(--base-font-size);
+  display: flex;
+  align-items: center;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: 10px 20px;
+  margin: 10px;
+}
+
+.nav-button:hover, .nav-link:hover {
+  background: linear-gradient(to bottom, rgba(128, 128, 128, 0.15), rgba(128, 128, 128, 0.25));
+}
+
+.dark .nav-button, .dark .nav-link {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.08));
+}
+
+.dark .nav-button:hover, .dark .nav-link:hover {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.15));
+}
+
+.nav-link.active {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.theme-toggle {
+  padding: var(--spacing-sm);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.theme-toggle:hover {
+  background: var(--light-bg);
+}
+
+.dark .theme-toggle:hover {
+  background: var(--dark-bg);
+}
+
+.navbar.dark {
+  background: var(--dark-card);
+  border-bottom: 1px solid var(--dark-border);
+}

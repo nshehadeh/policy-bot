@@ -95,3 +95,127 @@
   font-size: 0.9rem;
   width: 85%;
 }
+
+.auth-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.auth-modal {
+  background: var(--light-card);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: var(--shadow-lg);
+}
+
+.dark .auth-modal {
+  background: var(--dark-card);
+  border: 1px solid var(--dark-border);
+}
+
+.auth-header {
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--light-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dark .auth-header {
+  border-color: var(--dark-border);
+}
+
+.auth-header h2 {
+  margin: 0;
+  color: var(--light-text);
+}
+
+.dark .auth-header h2 {
+  color: var(--dark-text);
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--light-text-secondary);
+}
+
+.dark .close-button {
+  color: var(--dark-text-secondary);
+}
+
+.auth-content {
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.auth-title {
+  color: var(--light-text);
+  margin: 0 0 var(--spacing-md);
+  font-size: 2rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.auth-content h2 {
+  color: var(--light-text);
+  margin: 0 0 var(--spacing-xl);
+  font-size: 1.5rem;
+}
+
+.dark .auth-content h2 {
+  color: var(--dark-text);
+}
+
+.error-message {
+  color: var(--error);
+  margin-bottom: var(--spacing-lg);
+  font-size: 0.9rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.auth-form input {
+  padding: var(--spacing-md);
+  border: 1px solid var(--light-border);
+  border-radius: 6px;
+  background: var(--light-input);
+  color: var(--light-text);
+}
+
+.dark .auth-form input {
+  background: var(--dark-bg);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+.auth-button {
+  padding: var(--spacing-md);
+  border: none;
+  border-radius: 6px;
+  background: var(--gradient-primary);
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.auth-button:hover {
+  opacity: 0.9;
+}

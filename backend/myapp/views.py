@@ -394,8 +394,6 @@ class DocumentSearchView(BaseAPIView):
         permission_classes (list): Requires user authentication
     """
 
-    permission_classes = [IsAuthenticated]
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """
         Initialize MongoDB connection and RAG system.
