@@ -4,7 +4,7 @@
 Description:
 The project uses a Django backend and React frontend. The Django backend uses Django REST framework to define an API that connects to the RAG system powered by LangChain, which retrieves and processes data to provide responses. LangChain works with a Pinecone vector database to search document chunks for relevance, adding context to responses in addition to custom system prompts and chat history. Chats responses are streamed through websockets. User data, including chat sessions, message histories, and user settings, are stored in PostgreSQL through Django's ORM, while MongoDB stores full documents for the LLM to reference as needed.
 
-!![Demo](demos/demo_gif.gif)
+![Demo](demos/demo_gif.gif)
 
 To setup:
 - Clone this branch for aviary demo
