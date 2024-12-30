@@ -2,12 +2,12 @@
 ### Policy RAG App 
 
 Description:
-The project uses a Django backend and React frontend. The Django backend uses Django REST framework to define an API that connects to the RAG system powered by LangChain, which retrieves and processes data to provide responses. LangChain works with a Pinecone vector database to search document chunks for relevance, adding context to responses in addition to custom system prompts and chat history. Chats responses are streamed through websockets. User data, including chat sessions, message histories, and user settings, are stored in PostgreSQL through Django's ORM, while MongoDB stores full documents for the LLM to reference as needed.
+Agentic RAG app powered by LangGraph
+React + CSS frontend, Django REST API, Websocket streaming for chats, PostgreSQL for user data, MongoDB for document storage, Pinecone for vector embeddings
 
 ![Demo](demos/demo_gif.gif)
 
 To setup:
-- Clone this branch for aviary demo
 - Create a conda environment in backend/ with conda env create -f environment.yml
 - Create a envs file in backend/ containing:
     MONGO_CONNECTION_STRING=
