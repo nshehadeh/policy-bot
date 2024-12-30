@@ -1,5 +1,5 @@
 # PolicyAI
-### Policy RAG App 
+## Policy RAG App 
 
 Description:
 
@@ -11,7 +11,7 @@ Agentic RAG app powered by LangGraph
 - PostgreSQL for user data
 - MongoDB for document storage
 - Pinecone for vector embeddings
-
+## Demo 
 ![Demo](demos/demo_gif.gif)
 
 To setup:
