@@ -5,17 +5,12 @@ Description:
 
 Agentic RAG app powered by LangGraph
 
-React + CSS frontend
-
-Django REST API
-
-Websocket streaming for chats
-
-PostgreSQL for user data
-
-MongoDB for document storage
-
-Pinecone for vector embeddings
+- React + CSS frontend
+- Django REST API
+- Websocket streaming for chats
+- PostgreSQL for user data
+- MongoDB for document storage
+- Pinecone for vector embeddings
 
 ![Demo](demos/demo_gif.gif)
 
