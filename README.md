@@ -2,7 +2,7 @@
 ## Demo 
 ![Demo](demos/demo_gif.gif)
 
-Description:
+## Description
 
 Agentic RAG app powered by LangGraph
 
@@ -13,6 +13,7 @@ Agentic RAG app powered by LangGraph
 - MongoDB for document storage
 - Pinecone for vector embeddings
 
+## Instructions
 
 To setup:
 - Create a conda environment in backend/ with conda env create -f environment.yml
