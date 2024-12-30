@@ -1,5 +1,4 @@
-# PolicyAI
-## Policy RAG App 
+# PolicyAI - Policy RAG App 
 ## Demo 
 ![Demo](demos/demo_gif.gif)
 
