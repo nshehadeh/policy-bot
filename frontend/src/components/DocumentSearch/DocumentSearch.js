@@ -17,8 +17,7 @@ const DocumentSearch = ({ token, theme }) => {
       setLoading(true);
       try {
         const response = await api.get(
-          `/search/?query=${encodeURIComponent(searchQuery)}`,
-
+          `/documents/search/?query=${encodeURIComponent(searchQuery)}`,
         );
         setResults(response.data.results || []); // Update results, default to empty array if null
       } catch (error) {
@@ -130,7 +129,7 @@ const DocumentSearch = ({ token, theme }) => {
               </button>
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(80vh-8rem)]">
-              <p className={`text-gray-300 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} whitespace-pre-wrap`}>
+              <p className={`text-gray-300 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} whitespace-pre-wrap text-left`}>
                 {selectedDocument.summary}
               </p>
               {selectedDocument.url && (

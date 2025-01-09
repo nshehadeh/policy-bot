@@ -548,3 +548,46 @@ class DocumentSearchView(BaseAPIView):
             return self.handle_database_error(e, "searching documents")
         except Exception as e:
             self.handle_unexpected_error(e, "processing search request")
+
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        """
+        Handle POST requests to retrieve documents by their IDs.
+
+        Args:
+            request: HTTP request containing a list of document IDs
+
+        Returns:
+            Response: List of formatted documents matching the provided IDs
+        """
+        try:
+            document_ids = request.data.get("document_ids", [])
+            if not isinstance(document_ids, list):
+                raise ValidationError("document_ids must be a list")
+
+            if not document_ids:
+                return Response(
+                    {"error": "No document IDs provided"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Convert string IDs to ObjectId
+            object_ids = [ObjectId(doc_id) for doc_id in document_ids]
+            documents = self.get_document_details(object_ids)
+            
+            if not documents:
+                return Response(
+                    {"error": "No documents found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            formatted_results = self.format_results(documents)
+            return Response(formatted_results)
+
+        except ValidationError as e:
+            return self.handle_validation_error(e, "retrieving documents by IDs")
+        except Exception as e:
+            self.handle_unexpected_error(e, "retrieving documents by IDs")
+            return Response(
+                {"error": "Failed to retrieve documents"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

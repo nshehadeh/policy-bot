@@ -1,6 +1,6 @@
 """Chat graph implementation for conversational RAG."""
 
-from typing import Optional, Literal, AsyncGenerator, List
+from typing import Optional, Literal, AsyncGenerator, List, Dict
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_pinecone import PineconeVectorStore
@@ -15,6 +15,9 @@ from langchain_core.retrievers import BaseRetriever
 from langchain.tools.retriever import create_retriever_tool
 from IPython.display import Image
 from pydantic import BaseModel, Field
+from langchain.tools.retriever import RetrieverInput
+from langchain_core.tools.simple import Tool
+
 import asyncio
 import json
 
@@ -29,26 +32,12 @@ from .base import (
     RewritePromptTemplate,
     GenerateAnswerPromptTemplate,
     DirectResponsePromptTemplate,
-    GraderPromptTemplate
+    GraderPromptTemplate,
+    BasePromptTemplate
 )
-
-"""
-def create_retrieve_tool(vector_store: BaseVectorStore):
-    #Create a retrieve tool bound to a specific vector store.
-    @tool(response_format="content_and_artifact")
-    async def retrieve(query: str) -> tuple:
-        #Retrieve relevant documents.
-        retrieved_docs = await vector_store.similarity_search(query, k=6)
-        serialized = "\n\n".join(
-            (f"Source: {doc.metadata}\n" f"Content: {doc.page_content}")
-            for doc in retrieved_docs
-        )
-        return serialized, retrieved_docs
-    return retrieve
-
-"""
+    
 class VectorStoreRetriever(BaseRetriever):
-    """Async wrapper for vector store retrieval."""
+    """Sync wrapper for vector store retrieval."""
     
     vector_store: PineconeVectorStore
 
@@ -58,12 +47,44 @@ class VectorStoreRetriever(BaseRetriever):
         return docs
 
     def _get_relevant_documents(self, query: str) -> List[Document]:
-        """Sync version - not used but required by interface."""
+        """Sync retrieval of relevant documents."""
         docs = self.vector_store.similarity_search(query, k=6)
         return docs
     
+    def get_retriever_tool(self, name: str, description: str, document_prompt: Optional[BasePromptTemplate] = None) -> Tool:
+        """Create a tool for this retriever."""
+                
+        def sync_func(query: str) -> Dict[str, any]:
+            """Sync function for retrieval."""
+            docs = self._get_relevant_documents(query)
+            doc_list = [{"content": doc.page_content, "metadata": doc.metadata} for doc in docs]
+            combined_string = "\n\n".join(doc["content"] for doc in doc_list)
+            meta_data = [doc["metadata"]["id"] for doc in doc_list]
 
-    
+            return {
+                "combined_string": combined_string,
+                "meta_data": meta_data
+            }
+
+        async def async_func(query: str) -> Dict[str, any]:
+            """Async function for retrieval."""
+            docs = await self._aget_relevant_documents(query)
+            doc_list = [{"content": doc.page_content, "metadata": doc.metadata} for doc in docs]
+            combined_string = "\n\n".join(doc["content"] for doc in doc_list)
+            meta_data = [doc["metadata"]["id"] for doc in doc_list]
+            return {
+                "combined_string": combined_string,
+                "meta_data": meta_data
+            }
+        
+        return Tool(
+            name=name,
+            description=description,
+            func=sync_func,
+            coroutine=async_func,
+            args_schema=RetrieverInput,
+        )
+
 class ChatGraph(BaseRAGGraph):
     """Handles conversational RAG with history."""
 
@@ -82,10 +103,15 @@ class ChatGraph(BaseRAGGraph):
         
         # Create async retriever
         async_retriever = VectorStoreRetriever(vector_store=self.vector_store)
-        self.retrieve_tool = create_retriever_tool(
+        self.retrieve_tool = async_retriever.get_retriever_tool(
+                name="search_documents",
+                description="Search through documents to find relevant information"
+            )
+        
+        self.old_retrieve_tool = create_retriever_tool(
             retriever=async_retriever,
             name="search_documents",
-            description="Search through documents to find relevant information"
+            description="Retrieves relevant documents and their metadata",
         )
 
         self.history_prompt = HistoryPromptTemplate().get_prompt_template()
@@ -95,6 +121,7 @@ class ChatGraph(BaseRAGGraph):
         self.grader_prompt = GraderPromptTemplate().get_prompt_template()
         self.max_retrieval_attempts = 3
         self.retrieval_attempts = 0
+        self.doc_ids = []
         self.graph = self._setup_workflow()
         self.new_chats = []
         
@@ -125,9 +152,13 @@ class ChatGraph(BaseRAGGraph):
         llm_with_tool = self.llm.with_structured_output(grade)
         chain = self.grader_prompt | llm_with_tool
         messages = state["messages"]
-        last_message = messages[-1]
+        last_message = messages[-1].content
         question = messages[1].content
-        docs = last_message.content
+        # Parse the string content into a dictionary
+        content_dict = json.loads(last_message.replace("'", '"'))
+        docs = content_dict["combined_string"]
+        metadata = content_dict["meta_data"]
+        
         scored_result = await chain.ainvoke({"question": question, "context": docs})
         score = scored_result.binary_score
         if score == "yes":
@@ -137,10 +168,12 @@ class ChatGraph(BaseRAGGraph):
         else:
             return "rewrite"
 
-    async def _agent(self, state: MessagesState):
+    async def _agent(self, state):
         """Decide whether to retrieve or respond."""
         llm_with_tools = self.llm.bind_tools([self.retrieve_tool])
+        print("Input: ", state["messages"])
         response = await llm_with_tools.ainvoke(state["messages"])
+        print("Output: ", response)
         return {"messages": [response]}
 
     async def _rewrite(self, state):
@@ -163,11 +196,17 @@ class ChatGraph(BaseRAGGraph):
         tool_messages = recent_tool_messages[::-1]
 
         # Format into prompt --> adds former messages from graph
-        docs_content = "\n\n".join(doc.content for doc in tool_messages)
+        doc_ids = []
+        docs = ""
+        for message in tool_messages:
+            content_dict = json.loads(message.content.replace("'", '"'))
+            docs += content_dict["combined_string"]
+            doc_ids.extend(content_dict["meta_data"])
         question = messages[1].content 
         gen_chain = self.generate_prompt | self.llm | StrOutputParser()
+        self.doc_ids = doc_ids
 
-        response = await gen_chain.ainvoke({"context": docs_content, "question": question})
+        response = await gen_chain.ainvoke({"context": docs, "question": question})
         return {"messages": [response]}
     
     async def _direct_response(self, state):
@@ -237,7 +276,7 @@ class ChatGraph(BaseRAGGraph):
     def process_query_test(self, query: str):
         """Synchronous query processing - mainly for testing."""
         self.retrieval_attempts = 0
-        inputs = {"messages": [HumanMessage(content=query)]}
+        inputs = {"messages": [HumanMessage(content=query)], "metadata" : []}
         for msg, metadata in self.graph.stream(inputs, stream_mode="messages"):
             if (msg.content and metadata["langgraph_node"] == "generate"):
                 print(msg.content, flush=True)
@@ -247,8 +286,9 @@ class ChatGraph(BaseRAGGraph):
         self.retrieval_attempts = 0
         self._update_new_chats(HumanMessage(content=query))
         final_response = ""
-        inputs = {"messages": [HumanMessage(content=query)]}
+        inputs = {"messages": [HumanMessage(content=query)], "metadata" : []}
         last_node = None
+        docs_metadata = []
         async for msg, metadata in self.graph.astream(inputs, stream_mode="messages"):
             cur_node = metadata["langgraph_node"]
             if cur_node != last_node:
@@ -258,6 +298,8 @@ class ChatGraph(BaseRAGGraph):
                 yield {"type": "chunk", "chunk": msg.content}
                 final_response += msg.content
                 await asyncio.sleep(0.1)
-        final_response = AIMessage(content=final_response)
+        if self.doc_ids:
+            yield {"type": "metadata", "metadata": self.doc_ids}
+        final_response = AIMessage(content=final_response, additional_kwargs={"metadata": docs_metadata})
         self._update_new_chats(final_response)
         self.chat_history.add_ai_message(final_response)

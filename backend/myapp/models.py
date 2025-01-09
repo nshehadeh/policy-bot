@@ -73,6 +73,7 @@ class ChatMessage(models.Model):
         role (str): Who sent the message ('human' or 'ai')
         content (str): The actual message text
         created_at (datetime): When the message was sent
+        metadata (json): JSON field storing source metadata for AI responses
     """
 
     ROLE_CHOICES = [("human", "Human"), ("ai", "AI")]
@@ -83,6 +84,7 @@ class ChatMessage(models.Model):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    metadata = models.JSONField(null=True, blank=True)
 
     def __str__(self) -> str:
         """

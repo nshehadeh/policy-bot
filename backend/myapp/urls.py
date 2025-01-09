@@ -57,10 +57,15 @@ urlpatterns = [
         ChatSessionView.as_view(),
         name="chat-session-detail",  # Updates or deletes specific chat sessions
     ),
-    # Document Search Endpoint
+    # Document Search Endpoints
     path(
-        "search/",
+        "documents/search/",
         DocumentSearchView.as_view(),
-        name="document_search",  # Handles semantic search and document retrieval
+        name="document_search",  # Search documents using RAG system
+    ),
+    path(
+        "documents/retrieve/",
+        DocumentSearchView.as_view(),
+        name="document_retrieve",  # Retrieve documents by IDs
     ),
 ]

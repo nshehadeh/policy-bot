@@ -627,3 +627,22 @@ body {
     transform: scale(1.2);
   }
 }
+
+/* Sources Section */
+.sources-section {
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.source-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.source-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

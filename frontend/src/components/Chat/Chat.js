@@ -17,6 +17,9 @@ function Chat({ token, theme }) {
   const [renamingSessionId, setRenamingSessionId] = useState(null);
   const [newChatName, setNewChatName] = useState("");
   const [currentStep, setCurrentStep] = useState(null);
+  const [currentMetadata, setCurrentMetadata] = useState(null);
+  const [documentDetails, setDocumentDetails] = useState({});
+  const [selectedDocument, setSelectedDocument] = useState(null);
   const websocket = useRef(null);
   const aiMessageRef = useRef("");
   const chatMessagesRef = useRef(null);
@@ -95,7 +98,7 @@ function Chat({ token, theme }) {
       websocket.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === "complete") {
-          setCurrentStep("end")
+          setCurrentStep("end");
           return;
         }
 
@@ -104,9 +107,23 @@ function Chat({ token, theme }) {
           // Create an empty AI message if this is the first step and there's no AI message yet
           setHistory((prev) => {
             if (!prev.length || prev[prev.length - 1].role !== "ai") {
-              return [...prev, { role: "ai", content: "" }];
+              return [...prev, { role: "ai", content: "", metadata: [] }];
             }
             return prev;
+          });
+          return;
+        }
+
+        if (data.type === "metadata") {
+          console.log("Raw metadata received:", data.metadata);
+          const metadata = Array.isArray(data.metadata) ? data.metadata : [];
+          setCurrentMetadata(metadata);
+          setHistory((prev) => {
+            const newHistory = [...prev];
+            if (newHistory.length && newHistory[newHistory.length - 1]?.role === "ai") {
+              newHistory[newHistory.length - 1].metadata = metadata;
+            }
+            return newHistory;
           });
           return;
         }
@@ -120,8 +137,13 @@ function Chat({ token, theme }) {
               newHistory[newHistory.length - 1]?.role === "ai"
             ) {
               newHistory[newHistory.length - 1].content = aiMessageRef.current;
+              newHistory[newHistory.length - 1].metadata = currentMetadata || [];
             } else {
-              newHistory.push({ role: "ai", content: data.chunk });
+              newHistory.push({ 
+                role: "ai", 
+                content: data.chunk, 
+                metadata: currentMetadata || [] 
+              });
             }
             return newHistory;
           });
@@ -144,6 +166,41 @@ function Chat({ token, theme }) {
       };
     }
   }, [currentSessionId, token]);
+
+  // Fetch document details when metadata is received
+  const fetchDocumentDetails = async (documentIds) => {
+    try {
+      console.log("Fetching details for documents:", documentIds);
+      const response = await api.post(
+        "/documents/retrieve/",
+        { document_ids: documentIds },
+        { headers: { Authorization: `Token ${token}` } }
+      );
+      console.log("Received document details:", response.data);
+      const newDetails = {};
+      response.data.forEach(doc => {
+        if (doc && doc.id) {
+          newDetails[doc.id] = doc;
+        }
+      });
+      console.log("Processed document details:", newDetails);
+      setDocumentDetails(newDetails);
+    } catch (error) {
+      console.error("Error fetching document details:", error);
+    }
+  };
+
+  // Update metadata handling
+  useEffect(() => {
+    if (currentMetadata) {
+      console.log("Current metadata structure:", JSON.stringify(currentMetadata, null, 2));
+      const documentIds = currentMetadata;
+      console.log("Document IDs to fetch:", documentIds);
+      if (documentIds.length > 0) {
+        fetchDocumentDetails(documentIds);
+      }
+    }
+  }, [currentMetadata]);
 
   // Load a previous chat session and its history
   const handleLoadPreviousChat = async (sessionId) => {
@@ -332,6 +389,23 @@ function Chat({ token, theme }) {
     };
   }, [showChatHistory]);
 
+  // Handle document click
+  const handleDocumentClick = (document) => {
+    setSelectedDocument(document);
+  };
+
+  // Handle closing document modal
+  const handleCloseDocument = () => {
+    setSelectedDocument(null);
+  };
+
+  // Handle overlay click
+  const handleOverlayClick = (e) => {
+    if (e.target.classList.contains("document-overlay")) {
+      setSelectedDocument(null);
+    }
+  };
+
   return (
     
     <div className={`flex flex-col chat-tab overflow-hidden theme-${theme}`}>
@@ -383,6 +457,31 @@ function Chat({ token, theme }) {
                     </div>
                   )}
                   {msg.content}
+                  {msg.role === "ai" && msg.metadata && (
+                    <div className="sources-section mt-4 text-sm border-t border-gray-600 pt-2">
+                      <div className="flex flex-wrap gap-2 relative">
+                        {msg.metadata.map((docId, idx) => {
+                          console.log("Processing document ID:", docId);
+                          const docDetails = documentDetails[docId];
+                          console.log("Document details:", docDetails);
+                          return (
+                            <div 
+                              key={idx}
+                              className="source-tag px-1.5 py-0.5 bg-gray-700 rounded-lg text-gray-300 cursor-pointer hover:bg-gray-600 transition-colors relative group"
+                              onClick={() => docDetails && handleDocumentClick(docDetails)}
+                            >
+                              <span>{`Source ${idx + 1}`}</span>
+                              <div className="invisible group-hover:visible absolute left-0 bottom-[calc(100%+0.5rem)] p-2 bg-gray-900 rounded-lg shadow-lg z-10 whitespace-nowrap border border-gray-700">
+                                <div className="text-white">
+                                  {docDetails ? docDetails.title : `Loading...`}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -569,6 +668,43 @@ function Chat({ token, theme }) {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Detail Modal */}
+      {selectedDocument && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50 document-overlay"
+          onClick={handleOverlayClick}
+        >
+          <div className={`document-modal ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl`}>
+            <div className="document-modal-header flex justify-between items-start p-6 border-b border-gray-700">
+              <h2 className={`text-xl font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
+                {selectedDocument.title}
+              </h2>
+              <button
+                onClick={handleCloseDocument}
+                className="text-gray-400 hover:text-gray-200 text-2xl transition-colors"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(80vh-8rem)]">
+              <p className={`text-gray-300 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} whitespace-pre-wrap text-left`}>
+                {selectedDocument.summary}
+              </p>
+              {selectedDocument.url && (
+                <a
+                  href={selectedDocument.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
+                >
+                  View Original Document
+                </a>
+              )}
             </div>
           </div>
         </div>

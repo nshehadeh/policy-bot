@@ -17,7 +17,7 @@ from asgiref.sync import sync_to_async
 import asyncio
 from rag.chat_graph import ChatGraph
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 logger = logging.getLogger(__name__)
 
@@ -128,10 +128,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 
                 saved_count = 0
                 for chat in new_chats:
+                    #TODO Extract metadata if it exists
+                                        
                     await sync_to_async(ChatMessage.objects.create)(
                         session=self.chat_session,
                         content=chat.content,
-                        role="human" if isinstance(chat, HumanMessage) else "ai"
+                        role="human" if isinstance(chat, HumanMessage) else "ai",
                     )
                     saved_count += 1
                     
